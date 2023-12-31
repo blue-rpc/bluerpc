@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -39,13 +40,106 @@ type Ctx struct {
 	nextHandler  Handler
 }
 
+// / This calls the Get method on the http Request
 func (c *Ctx) Get(key string) string {
 	return c.httpR.Header.Get(key)
 }
 
-// This just calls w.Header().Set() from net/http (w being a http.ResponseWriter).
+// This calls the Set method on the http response
 func (c *Ctx) Set(key, value string) {
 	c.httpW.Header().Set(key, value)
+}
+
+// GetReqHeaders returns a map of all request headers.
+func (c *Ctx) GetReqHeaders() map[string][]string {
+	return c.httpR.Header
+}
+
+// GetRespHeaders returns a COPY map of all response headers.
+func (c *Ctx) GetRespHeaders() map[string][]string {
+	// Create a new map to hold the response headers
+	respHeaders := make(map[string][]string)
+	for key, values := range c.httpW.Header() {
+		respHeaders[key] = make([]string, len(values))
+		copy(respHeaders[key], values)
+	}
+	return respHeaders
+}
+
+// Slug returns the last URL segment's value (called the slug).
+func (c *Ctx) Slug() (string, error) {
+	parsedURL, err := url.Parse(c.httpR.URL.String())
+	if err != nil {
+		return "", err
+	}
+
+	// Trimming the leading slash if present
+	path := strings.TrimPrefix(parsedURL.Path, "/")
+	// Splitting the path by '/'
+	parts := strings.Split(path, "/")
+
+	// Getting the last part
+	if len(parts) > 0 {
+		return parts[len(parts)-1], nil
+	}
+
+	return "", nil
+}
+
+// Hostname returns the hostname derived from the Host HTTP header.
+func (c *Ctx) Hostname() string {
+	return c.httpR.Host
+}
+
+// IP returns the remote IP address of the request.
+func (c *Ctx) IP() string {
+	return c.httpR.RemoteAddr
+}
+
+// Links sets the Link header in the HTTP response.
+func (c *Ctx) Links(link ...string) {
+	if len(link)%2 != 0 {
+		return // Ensure even number of parameters
+	}
+	var links []string
+	for i := 0; i < len(link); i += 2 {
+		links = append(links, `<`+link[i]+`>; rel="`+link[i+1]+`"`)
+	}
+	c.Set("Link", strings.Join(links, ", "))
+}
+
+// Method returns or overrides the HTTP method of the request.
+func (c *Ctx) Method(override ...string) string {
+	if len(override) > 0 {
+		c.httpR.Method = override[0]
+	}
+	return c.httpR.Method
+}
+
+// Path gets or sets the path part of the request URL.
+func (c *Ctx) Path(override ...string) string {
+	if len(override) > 0 {
+		c.httpR.URL.Path = override[0]
+	}
+	return c.httpR.URL.Path
+}
+
+// Protocol returns the protocol (http or https) used in the request.
+func (c *Ctx) Protocol() string {
+	if c.httpR.TLS != nil {
+		return "https"
+	}
+	return "http"
+}
+
+// Attachment sets the Content-Disposition header to make the response an attachment.
+// If a filename is provided, it includes it in the header.
+func (c *Ctx) Attachment(filename ...string) {
+	disposition := "attachment"
+	if len(filename) > 0 {
+		disposition += `; filename="` + filename[0] + `"`
+	}
+	c.Set("Content-Disposition", disposition)
 }
 
 // Decode decodes the query parameters to a struct.
