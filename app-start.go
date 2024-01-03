@@ -74,7 +74,6 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		if strings.HasPrefix(localSlug, "/:") {
 			localSlug = "/"
 		}
-		fmt.Println("localSlug", localSlug)
 		mux.HandleFunc(localSlug, func(w http.ResponseWriter, r *http.Request) {
 			ctx := createCtx(w, r)
 			var allHandlersArray []Handler

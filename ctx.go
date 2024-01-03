@@ -143,7 +143,6 @@ func (c *Ctx) queryParser(targetStruct interface{}, dynamicSlugKey string) error
 		} else {
 			slugKeys[i] = strings.TrimPrefix(slugKey, ":")
 		}
-
 	}
 
 	for i := 0; i < structVal.NumField(); i++ {
