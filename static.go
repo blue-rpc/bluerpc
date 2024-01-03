@@ -1,48 +1,13 @@
 package bluerpc
 
 import (
-	"compress/gzip"
 	"fmt"
 	"net/http"
 	"os"
 	"path"
 	"strings"
-	"sync"
 	"time"
 )
-
-type fileCacheEntry struct {
-	content    []byte
-	lastAccess time.Time
-}
-
-var (
-	fileCache = make(map[string]fileCacheEntry)
-	cacheLock = sync.RWMutex{}
-)
-
-func getFileFromCache(path string, cacheDuration time.Duration) ([]byte, bool) {
-	cacheLock.RLock()
-	defer cacheLock.RUnlock()
-
-	entry, found := fileCache[path]
-	if !found || (cacheDuration >= 0 && time.Since(entry.lastAccess) > cacheDuration) {
-		return nil, false
-	}
-	entry.lastAccess = time.Now()
-	fileCache[path] = entry
-	return entry.content, true
-}
-
-func cacheFile(path string, content []byte) {
-	cacheLock.Lock()
-	defer cacheLock.Unlock()
-
-	fileCache[path] = fileCacheEntry{
-		content:    content,
-		lastAccess: time.Now(),
-	}
-}
 
 type Static struct {
 	// When set to true, enables direct download.
@@ -102,17 +67,4 @@ func createStaticFunction(prefix, root string, config *Static) func(c *Ctx) erro
 		}
 		return nil
 	}
-}
-
-type gzipResponse struct {
-	http.ResponseWriter
-	Writer *gzip.Writer
-}
-
-func (g gzipResponse) Write(b []byte) (int, error) {
-	return g.Writer.Write(b)
-}
-func shouldCompress(r *http.Request) bool {
-	// Check if the client can accept gzip encoding
-	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 }

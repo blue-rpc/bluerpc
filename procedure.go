@@ -74,8 +74,8 @@ func NewMutation[queryParams any, input any, output any](app *App, mutation Muta
 // Use any to avoid validation
 func NewQuery[queryParams any, output any](app *App, query Query[queryParams, output]) *Procedure[queryParams, any, output] {
 
-	var queryParamsInstance *queryParams
-	var outputInstance *output
+	queryParamsInstance := new(queryParams)
+	outputInstance := new(output)
 
 	return &Procedure[queryParams, any, output]{
 		app:               app,
@@ -85,20 +85,4 @@ func NewQuery[queryParams any, output any](app *App, query Query[queryParams, ou
 		method:            QUERY,
 		queryHandler:      query,
 	}
-}
-func createEmptyStruct[T any]() (interface{}, bool) {
-	var typeOfT reflect.Type
-
-	// Creating a zero value of type T and getting its reflection type
-	zeroVal := new(T)
-	typeOfT = reflect.TypeOf(zeroVal).Elem()
-
-	// Check if the type is a struct
-	if typeOfT.Kind() == reflect.Struct {
-		// Create an empty instance of the struct
-		emptyStruct := reflect.New(typeOfT).Elem().Interface()
-		return emptyStruct, true
-	}
-
-	return nil, false
 }

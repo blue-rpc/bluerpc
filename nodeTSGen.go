@@ -17,13 +17,13 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 
 			stringBuilder.WriteString(fmt.Sprintf("%s:{", strings.ReplaceAll(slug, "/", "")))
 			if proc.method == QUERY {
-				stringBuilder.WriteString(fmt.Sprintf("query: async "))
+				stringBuilder.WriteString("query: async ")
 				queryParams, output := proc.querySchema, proc.outputSchema
 				genTSFuncFromQuery(stringBuilder, queryParams, output, currentPath)
 			}
 
 			if proc.method == MUTATION {
-				stringBuilder.WriteString(fmt.Sprintf("mutation: async "))
+				stringBuilder.WriteString("mutation: async ")
 				queryParams, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
 				genTSFuncFromMutation(stringBuilder, queryParams, input, output, currentPath)
 			}

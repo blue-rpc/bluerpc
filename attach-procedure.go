@@ -18,24 +18,27 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	validatorFn := *proc.validatorFn
 	fullRoute := absPath + slug
 	fullHandler := func(c *Ctx) error {
-		queryParams, err := validateQuery(c, validatorFn, proc)
+		queryParams, err := validateQuery(c, proc, slug)
 		if err != nil {
 			return err
 		}
 		var res *Res[output]
+
 		switch proc.method {
 		case QUERY:
 			res, err = proc.queryHandler(c, queryParams)
+			if err != nil {
+				return err
+			}
 		case MUTATION:
-			input, err := validateInput(c, validatorFn, proc)
+			input, err := validateInput(c, proc)
 			if err != nil {
 				return err
 			}
 			res, err = proc.mutationHandler(c, queryParams, input)
-		}
-
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 
 		err = validateOutput(validatorFn, proc, res, fullRoute, MUTATION)
@@ -72,16 +75,18 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	app.recalculateMux = true
 }
 
-func validateQuery[queryParams any, input any, output any](c *Ctx, validatorFn validatorFn, proc *Procedure[queryParams, input, output]) (queryParams, error) {
+func validateQuery[queryParams any, input any, output any](c *Ctx, proc *Procedure[queryParams, input, output], slug string) (queryParams, error) {
+
 	queryParamInstance := new(queryParams)
 
-	if proc.queryParamsSchema == nil || validatorFn == nil {
+	if proc.queryParamsSchema == nil || proc.validatorFn == nil {
 		return *queryParamInstance, nil
 	}
-	if err := c.QueryParser(queryParamInstance); err != nil {
+
+	if err := c.queryParser(queryParamInstance, slug); err != nil {
 		return *queryParamInstance, err
 	}
-	if err := validatorFn(queryParamInstance); err != nil {
+	if err := (*proc.validatorFn)(queryParamInstance); err != nil {
 
 		return *queryParamInstance, &Error{
 			Code:    http.StatusBadRequest,
@@ -93,9 +98,9 @@ func validateQuery[queryParams any, input any, output any](c *Ctx, validatorFn v
 	return *queryParamInstance, nil
 
 }
-func validateInput[queryParams any, input any, output any](c *Ctx, validatorFn validatorFn, proc *Procedure[queryParams, input, output]) (input, error) {
+func validateInput[queryParams any, input any, output any](c *Ctx, proc *Procedure[queryParams, input, output]) (input, error) {
 	inputInstance := new(input)
-	if proc.inputSchema == nil || validatorFn == nil {
+	if proc.inputSchema == nil || proc.validatorFn == nil {
 		return *inputInstance, nil
 	}
 	if err := c.BodyParser(inputInstance); err != nil {
@@ -103,7 +108,7 @@ func validateInput[queryParams any, input any, output any](c *Ctx, validatorFn v
 		return *inputInstance, err
 	}
 	// Validate the struct
-	if err := validatorFn(inputInstance); err != nil {
+	if err := (*proc.validatorFn)(inputInstance); err != nil {
 
 		return *inputInstance, &Error{
 			Code:    http.StatusBadRequest,

@@ -114,28 +114,7 @@ func (r *Router) Use(middlewares ...Handler) {
 	r.mws = append(r.mws, middlewares...)
 
 }
-func (r *Router) handle(h Handler) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := createCtx(w, r)
-		h(ctx)
-	}
-}
 
-// func (r *Router) runMws(ctx *http.RequestCtx) error {
-
-// 	if len(r.mws) == 0 {
-// 		return nil
-// 	}
-
-//		blueRPCCtx := createCtx(ctx)
-//		for i := 0; i < len(r.mws); i++ {
-//			blueRPCCtx.indexHandler = i
-//			err := (*r.mws[i])(blueRPCCtx)
-//			if err != nil {
-//				return err
-//			}
-//		}
-//	}
 func createCtx(w http.ResponseWriter, r *http.Request) *Ctx {
 	return &Ctx{
 		httpW:        w,

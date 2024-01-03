@@ -5,8 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
-	"net/url"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -64,26 +64,6 @@ func (c *Ctx) GetRespHeaders() map[string][]string {
 		copy(respHeaders[key], values)
 	}
 	return respHeaders
-}
-
-// Slug returns the last URL segment's value (called the slug).
-func (c *Ctx) Slug() (string, error) {
-	parsedURL, err := url.Parse(c.httpR.URL.String())
-	if err != nil {
-		return "", err
-	}
-
-	// Trimming the leading slash if present
-	path := strings.TrimPrefix(parsedURL.Path, "/")
-	// Splitting the path by '/'
-	parts := strings.Split(path, "/")
-
-	// Getting the last part
-	if len(parts) > 0 {
-		return parts[len(parts)-1], nil
-	}
-
-	return "", nil
 }
 
 // Hostname returns the hostname derived from the Host HTTP header.
@@ -145,9 +125,26 @@ func (c *Ctx) Attachment(filename ...string) {
 // Decode decodes the query parameters to a struct.
 //
 // The first parameter must be a pointer to a struct.
-func (c *Ctx) QueryParser(targetStruct interface{}) error {
+func (c *Ctx) queryParser(targetStruct interface{}, dynamicSlugKey string) error {
 	structVal := reflect.ValueOf(targetStruct).Elem()
 	structType := structVal.Type()
+	query := c.httpR.URL.Query()
+
+	// I take the slug key and split it to get all of the possible nested routes that the user might add
+	// for example /:userId/:imageId/name will be split into [":userId". ":imageId", "name"]
+	slugKeys := strings.Split(dynamicSlugKey, "/")
+	slices.Reverse(slugKeys)
+
+	//I only care about the slugs if they are dynamic. yet I also care about their position in the url, for example I need to know that /:userId is second to last in /:userId/:imageId/name
+	// so if it is not dynamic I leave it blank and if it is I remove the dot to be able to compare it later
+	for i, slugKey := range slugKeys {
+		if !strings.HasPrefix(slugKey, ":") {
+			slugKeys[i] = ""
+		} else {
+			slugKeys[i] = strings.TrimPrefix(slugKey, ":")
+		}
+
+	}
 
 	for i := 0; i < structVal.NumField(); i++ {
 		field := structVal.Field(i)
@@ -164,9 +161,22 @@ func (c *Ctx) QueryParser(targetStruct interface{}) error {
 			continue
 		}
 
-		queryValues, found := c.httpR.URL.Query()[queryKey]
-		if !found {
-			continue
+		var queryValues []string
+
+		//continuing from the last comment
+		// if the struct query key matches any
+		if posOfSlugInUrl := findIndex(slugKeys, queryKey); posOfSlugInUrl != -1 {
+			url := c.httpR.URL.Path
+			urlParts := strings.Split(url, "/")
+
+			queryValues = append(queryValues, urlParts[len(urlParts)-posOfSlugInUrl-1])
+		} else {
+			vals, found := query[queryKey]
+			if !found {
+				continue
+			}
+			queryValues = append(queryValues, vals...)
+
 		}
 
 		switch field.Kind() {
@@ -192,35 +202,21 @@ func (c *Ctx) QueryParser(targetStruct interface{}) error {
 			} else {
 				return fmt.Errorf("invalid integer value '%s' for query parameter '%s'", queryValues[0], queryKey)
 			}
-			// Add more cases as needed for other types
+		case reflect.Bool:
+			if boolVal, err := strconv.ParseBool(queryValues[0]); err == nil {
+				field.SetBool(boolVal)
+			} else {
+				return fmt.Errorf("invalid boolean value '%s' for query parameter '%s'", queryValues[0], dynamicSlugKey)
+			}
+		default:
+			return fmt.Errorf("unsupported type '%s' for query parameter '%s'", field.Kind(), dynamicSlugKey)
+
 		}
 	}
 
 	return nil
 }
-func setField(obj interface{}, name string, value interface{}) error {
-	structValue := reflect.ValueOf(obj).Elem()
-	fieldVal := structValue.FieldByName(name)
 
-	if !fieldVal.IsValid() {
-		return fmt.Errorf("invalid query parameter: '%s' is not a recognized field", name)
-	}
-
-	if !fieldVal.CanSet() {
-		return fmt.Errorf("unable to set query parameter: '%s' due to field restrictions", name)
-	}
-
-	// Convert value to the correct type
-	val := reflect.ValueOf(value)
-	fieldType := fieldVal.Type()
-	if val.Type().ConvertibleTo(fieldType) {
-		fieldVal.Set(val.Convert(fieldType))
-	} else {
-		return fmt.Errorf("type mismatch for query parameter '%s': expected %s, got %s", name, fieldType, val.Type())
-	}
-
-	return nil
-}
 func (c *Ctx) BodyParser(targetStruct interface{}) error {
 	contentType := c.httpR.Header.Get("Content-Type")
 
@@ -241,7 +237,7 @@ func (c *Ctx) BodyParser(targetStruct interface{}) error {
 
 func (c *Ctx) decodeJSON(targetStruct interface{}) error {
 	if c.httpR.ContentLength == 0 {
-		return fmt.Errorf("The body of the request is empty")
+		return fmt.Errorf("the body of the request is empty")
 	}
 	decoder := json.NewDecoder(c.httpR.Body)
 	return decoder.Decode(targetStruct)

@@ -13,22 +13,13 @@ type App struct {
 	port           string
 	serveMux       *http.ServeMux
 	server         *http.Server
-	mws            []Handler
 	mutex          sync.Mutex
 	recalculateMux bool
 }
 
 func New(blueConfig ...*Config) *App {
 
-	var cfg *Config
-
-	if len(blueConfig) > 0 {
-		cfg = blueConfig[0]
-	} else {
-		cfg = &Config{}
-	}
-
-	cfg = setAppDefaults(blueConfig)
+	cfg := setAppDefaults(blueConfig)
 
 	startRouter := &Router{
 		Routes:      map[string]*Router{},
@@ -65,9 +56,9 @@ func setAppDefaults(blueConfig []*Config) *Config {
 	if cfg.OutputPath == "" {
 		cfg.OutputPath = tsOutputPath
 	}
-
 	if cfg.ErrorMiddleware == nil {
 		cfg.ErrorMiddleware = DefaultErrorMiddleware
+
 	}
 
 	return cfg
