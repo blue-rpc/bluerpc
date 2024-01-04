@@ -11,7 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type test_queryParams struct {
+type test_query struct {
 	Something string `query:"query" validate:"required"`
 }
 
@@ -24,7 +24,7 @@ func TestQuery(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewQuery[test_queryParams, test_output](app, func(ctx *Ctx, queryParams test_queryParams) (*Res[test_output], error) {
+	proc := NewQuery[test_query, test_output](app, func(ctx *Ctx, query test_query) (*Res[test_output], error) {
 		return &Res[test_output]{
 			Status: 200,
 			Header: Header{},
@@ -103,7 +103,7 @@ func TestMutation(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewMutation[test_queryParams, test_input, test_output](app, func(ctx *Ctx, queryParams test_queryParams, input test_input) (*Res[test_output], error) {
+	proc := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
 
 		return &Res[test_output]{
 			Status: 200,
@@ -195,14 +195,14 @@ func TestMutation(t *testing.T) {
 	fmt.Println(DefaultColors.Green + "PASSED VALID MUTATION")
 	fmt.Println(DefaultColors.Green + "TESTING INVALID OUTPUT")
 
-	fakeProc := NewMutation[test_queryParams, test_input, test_output](app, func(ctx *Ctx, queryParams test_queryParams, input test_input) (*Res[test_output], error) {
+	fakeProc := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
 
 		return &Res[test_output]{
 			Status: 200,
 			Body: test_output{
 				FieldOneOut:   "",
 				FieldTwoOut:   "dwa",
-				FieldThreeOut: queryParams.Something,
+				FieldThreeOut: query.Something,
 			},
 		}, nil
 

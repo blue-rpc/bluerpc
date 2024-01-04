@@ -18,7 +18,8 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	validatorFn := *proc.validatorFn
 	fullRoute := absPath + slug
 	fullHandler := func(c *Ctx) error {
-		queryParams, err := validateQuery(c, proc, slug)
+
+		query, err := validateQuery(c, proc, slug)
 		if err != nil {
 			return err
 		}
@@ -26,16 +27,20 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 
 		switch proc.method {
 		case QUERY:
-			res, err = proc.queryHandler(c, queryParams)
+			res, err = proc.queryHandler(c, query)
 			if err != nil {
 				return err
 			}
 		case MUTATION:
+			err := checkContentTypeValidity(c.httpW.Header().Get("Content-Type"), proc.acceptedContentType)
+			if err != nil {
+				return err
+			}
 			input, err := validateInput(c, proc)
 			if err != nil {
 				return err
 			}
-			res, err = proc.mutationHandler(c, queryParams, input)
+			res, err = proc.mutationHandler(c, query, input)
 			if err != nil {
 				return err
 			}
@@ -53,7 +58,7 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 		return sendRes(c, res)
 	}
 	// if !proc.app.config.disableGenerateTS {
-	// 	params := *new(queryParams)
+	// 	params := *new(query)
 
 	// 	input := *new(input)
 
@@ -75,11 +80,11 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	app.recalculateMux = true
 }
 
-func validateQuery[queryParams any, input any, output any](c *Ctx, proc *Procedure[queryParams, input, output], slug string) (queryParams, error) {
+func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output], slug string) (query, error) {
 
-	queryParamInstance := new(queryParams)
+	queryParamInstance := new(query)
 
-	if proc.queryParamsSchema == nil || proc.validatorFn == nil {
+	if proc.querySchema == nil || proc.validatorFn == nil {
 		return *queryParamInstance, nil
 	}
 
@@ -98,12 +103,12 @@ func validateQuery[queryParams any, input any, output any](c *Ctx, proc *Procedu
 	return *queryParamInstance, nil
 
 }
-func validateInput[queryParams any, input any, output any](c *Ctx, proc *Procedure[queryParams, input, output]) (input, error) {
+func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output]) (input, error) {
 	inputInstance := new(input)
 	if proc.inputSchema == nil || proc.validatorFn == nil {
 		return *inputInstance, nil
 	}
-	if err := c.BodyParser(inputInstance); err != nil {
+	if err := c.bodyParser(inputInstance); err != nil {
 		fmt.Println("err here at bodyParser of input", err.Error())
 		return *inputInstance, err
 	}
@@ -118,7 +123,7 @@ func validateInput[queryParams any, input any, output any](c *Ctx, proc *Procedu
 	}
 	return *inputInstance, nil
 }
-func validateOutput[queryParams any, input any, output any](validatorFn validatorFn, proc *Procedure[queryParams, input, output], res *Res[output], path string, method Method) error {
+func validateOutput[query any, input any, output any](validatorFn validatorFn, proc *Procedure[query, input, output], res *Res[output], path string, method Method) error {
 	if proc.outputSchema == nil || validatorFn == nil {
 		return nil
 	}
@@ -145,7 +150,7 @@ func setHeaders(ctx *Ctx, header *Header) error {
 	if header.ContentType != "" {
 		ctx.Set("Content-Type", header.ContentType)
 	} else {
-		header.ContentType = MIMEApplicationJSON
+		header.ContentType = ApplicationJSON
 		ctx.Set("Content-Type", header.ContentType)
 	}
 	if header.Expires != "" {
@@ -162,23 +167,40 @@ func setHeaders(ctx *Ctx, header *Header) error {
 func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 
 	switch res.Header.ContentType {
-	case MIMETextXML, MIMETextXMLCharsetUTF8:
+	case TextXML, TextXMLCharsetUTF8:
 		return ctx.XML(res.Body)
-	case MIMETextPlain, MIMETextPlainCharsetUTF8:
+	case TextPlain, TextPlainCharsetUTF8:
 		return ctx.SendString(fmt.Sprint(res.Body))
 
-	case MIMEApplicationJSON, MIMEApplicationJSONCharsetUTF8:
+	case ApplicationJSON, ApplicationJSONCharsetUTF8:
 		return ctx.JSON(res.Body)
-	case MIMEApplicationJavaScript:
+	case ApplicationJavaScript:
 		return ctx.SendString(fmt.Sprint(res.Body))
-	case MIMEApplicationForm:
+	case ApplicationForm:
 		return ctx.SendString(fmt.Sprint(res.Body))
-	case MIMEOctetStream:
+	case OctetStream:
 		return ctx.SendString(fmt.Sprint(res.Body))
-	case MIMEMultipartForm:
+	case MultipartForm:
 		ctx.SendString(fmt.Sprint(res.Body))
 	default:
 		return ctx.Status(400).SendString("Unsupported media type")
 	}
 	return nil
+}
+
+func checkContentTypeValidity(contentType string, validContentTypes []string) error {
+
+	fullContentTypes := ""
+	for i, validType := range validContentTypes {
+		if validType == contentType {
+			return nil
+		}
+		fullContentTypes += validType
+		if i != len(validContentTypes)-1 {
+			fullContentTypes += ", "
+		}
+
+	}
+
+	return fmt.Errorf("invalid content type. server only accepts %s", fullContentTypes)
 }

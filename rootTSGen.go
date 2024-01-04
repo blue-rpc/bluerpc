@@ -8,7 +8,7 @@ import (
 // // procedureInfo is a generic struct that embeds procedureInfoBase.
 // // MAYBE this should be different for QUERY and MUTATION since QUERY has no INPUT
 // type procedureInfo struct {
-// 	queryParams interface{}
+// 	query interface{}
 // 	input       interface{}
 // 	output      interface{}
 // }

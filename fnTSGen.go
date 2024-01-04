@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func genTSFuncFromQuery(stringBuilder *strings.Builder, queryParams, output interface{}, address string) {
+func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{}, address string) {
 
 	stringBuilder.WriteString("(")
-	if queryParams != nil {
-		qpType := getType(queryParams)
+	if query != nil {
+		qpType := getType(query)
 		stringBuilder.WriteString("query:")
 		stringBuilder.WriteString(GoFieldsToTSObj(qpType))
 	}
@@ -23,20 +23,20 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, queryParams, output inte
 		stringBuilder.WriteString("void")
 	}
 	stringBuilder.WriteString(">=>")
-	generateQueryFnBody(stringBuilder, queryParams != nil, address)
+	generateQueryFnBody(stringBuilder, query != nil, address)
 }
 
-func genTSFuncFromMutation(stringBuilder *strings.Builder, queryParams, input, output interface{}, address string) {
+func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output interface{}, address string) {
 
 	stringBuilder.WriteString("(")
 
-	isParams := queryParams != nil || input != nil
+	isParams := query != nil || input != nil
 	if isParams {
 		stringBuilder.WriteString("parameters : {")
 	}
 
-	if queryParams != nil {
-		qpType := getType(queryParams)
+	if query != nil {
+		qpType := getType(query)
 		if qpType.Kind() == reflect.Ptr {
 			qpType = qpType.Elem()
 		}

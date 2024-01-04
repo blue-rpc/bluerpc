@@ -19,7 +19,7 @@ func TestGroup(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewQuery[any, test_output](app, func(ctx *Ctx, queryParams any) (*Res[test_output], error) {
+	proc := NewQuery[any, test_output](app, func(ctx *Ctx, query any) (*Res[test_output], error) {
 		return &Res[test_output]{
 			Status: 200,
 			Header: Header{},

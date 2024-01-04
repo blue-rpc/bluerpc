@@ -91,7 +91,7 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		})
 	}
 
-	for slug, route := range router.Routes {
+	for slug, route := range router.routes {
 		nextMws := append(prevMws, route.mws...)
 		nestedMux, newTotalRoutes := buildMux(route, nextMws, totalRoutes)
 		totalRoutes = newTotalRoutes

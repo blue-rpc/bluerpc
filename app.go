@@ -22,7 +22,7 @@ func New(blueConfig ...*Config) *App {
 	cfg := setAppDefaults(blueConfig)
 
 	startRouter := &Router{
-		Routes:      map[string]*Router{},
+		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mux:         http.NewServeMux(),
 		validatorFn: &cfg.ValidatorFn,
@@ -75,13 +75,13 @@ func (a *App) Router(relativePath string) *Router {
 	newRouter := &Router{
 		absPath:     relativePath,
 		mux:         http.NewServeMux(),
-		Routes:      map[string]*Router{},
+		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mws:         []Handler{},
 		validatorFn: &a.config.ValidatorFn,
 		app:         a,
 	}
-	a.startRoute.Routes[relativePath] = newRouter
+	a.startRoute.routes[relativePath] = newRouter
 	return newRouter
 
 }

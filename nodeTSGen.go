@@ -18,14 +18,14 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 			stringBuilder.WriteString(fmt.Sprintf("%s:{", strings.ReplaceAll(slug, "/", "")))
 			if proc.method == QUERY {
 				stringBuilder.WriteString("query: async ")
-				queryParams, output := proc.querySchema, proc.outputSchema
-				genTSFuncFromQuery(stringBuilder, queryParams, output, currentPath)
+				query, output := proc.querySchema, proc.outputSchema
+				genTSFuncFromQuery(stringBuilder, query, output, currentPath)
 			}
 
 			if proc.method == MUTATION {
 				stringBuilder.WriteString("mutation: async ")
-				queryParams, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
-				genTSFuncFromMutation(stringBuilder, queryParams, input, output, currentPath)
+				query, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
+				genTSFuncFromMutation(stringBuilder, query, input, output, currentPath)
 			}
 
 			stringBuilder.WriteString("}")
@@ -35,11 +35,11 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 		}
 	}
 
-	if router.Routes != nil {
-		keys := getSortedKeys(router.Routes)
+	if router.routes != nil {
+		keys := getSortedKeys(router.routes)
 		for i, path := range keys {
 			stringBuilder.WriteString(fmt.Sprintf("%s:", strings.ReplaceAll(path, "/", "")))
-			nodeToTS(stringBuilder, router.Routes[path], i == len(keys)-1, currentPath+path)
+			nodeToTS(stringBuilder, router.routes[path], i == len(keys)-1, currentPath+path)
 		}
 
 	}
