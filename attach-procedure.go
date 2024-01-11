@@ -168,12 +168,12 @@ func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 
 	switch res.Header.ContentType {
 	case TextXML, TextXMLCharsetUTF8:
-		return ctx.XML(res.Body)
+		return ctx.xML(res.Body)
 	case TextPlain, TextPlainCharsetUTF8:
 		return ctx.SendString(fmt.Sprint(res.Body))
 
 	case ApplicationJSON, ApplicationJSONCharsetUTF8:
-		return ctx.JSON(res.Body)
+		return ctx.jSON(res.Body)
 	case ApplicationJavaScript:
 		return ctx.SendString(fmt.Sprint(res.Body))
 	case ApplicationForm:
@@ -183,7 +183,7 @@ func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 	case MultipartForm:
 		ctx.SendString(fmt.Sprint(res.Body))
 	default:
-		return ctx.Status(400).SendString("Unsupported media type")
+		return ctx.status(400).SendString("Unsupported media type")
 	}
 	return nil
 }

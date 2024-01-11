@@ -11,11 +11,11 @@ func DefaultErrorMiddleware(ctx *Ctx) error {
 
 	if e, ok := err.(*Error); ok {
 
-		return ctx.Status(e.Code).JSON(Map{
+		return ctx.status(e.Code).jSON(Map{
 			"message": e.Message,
 		})
 	}
-	return ctx.Status(500).JSON(Map{
+	return ctx.status(500).jSON(Map{
 		"message": err.Error(),
 	})
 }

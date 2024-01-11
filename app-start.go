@@ -105,7 +105,7 @@ func generateFullHandler(handlers []Handler) Handler {
 
 	if len(handlers) == 0 {
 		return func(ctx *Ctx) error {
-			return ctx.Status(404).JSON(Map{"message": "not found"})
+			return ctx.status(404).jSON(Map{"message": "not found"})
 		}
 	}
 	chain := handlers[len(handlers)-1]

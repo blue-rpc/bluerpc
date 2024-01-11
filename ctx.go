@@ -19,7 +19,7 @@ type Ctx struct {
 	nextHandler Handler
 }
 
-// / This calls the Get method on the http Request
+// / This calls the Get method on the http Request to get a value from the header depending on a given key
 func (c *Ctx) Get(key string) string {
 	return c.httpR.Header.Get(key)
 }
@@ -234,7 +234,7 @@ func (c *Ctx) Cookie(cookie *http.Cookie) {
 
 type Map map[string]interface{}
 
-func (c *Ctx) JSON(data interface{}) error {
+func (c *Ctx) jSON(data interface{}) error {
 
 	// Marshal the struct into JSON
 	jsonData, err := json.Marshal(data)
@@ -247,7 +247,7 @@ func (c *Ctx) JSON(data interface{}) error {
 	return nil
 
 }
-func (c *Ctx) Status(code int) *Ctx {
+func (c *Ctx) status(code int) *Ctx {
 	c.httpW.WriteHeader(code)
 	return c
 }
@@ -263,7 +263,7 @@ func (c *Ctx) SendString(str string) error {
 	return nil
 }
 
-func (c *Ctx) XML(data interface{}) error {
+func (c *Ctx) xML(data interface{}) error {
 	xmlData, err := xml.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
