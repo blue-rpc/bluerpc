@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-type Handler func(Ctx *Ctx) error
+type Handler = func(Ctx *Ctx) error
 
 type Res[T any] struct {
 	Status int
@@ -22,12 +22,12 @@ type Header struct {
 
 // First Generic argument is QUERY PARAMS.
 // Second is OUTPUT
-type Query[queryParams any, output any] func(ctx *Ctx, queryParams queryParams) (*Res[output], error)
+type Query[query any, output any] func(ctx *Ctx, query query) (*Res[output], error)
 
 // First Generic argument is QUERY PARAMETERS.
 // Second is INPUT.
 // Third is OUTPUT.
-type Mutation[queryParams any, input any, output any] func(ctx *Ctx, queryParams queryParams, input input) (*Res[output], error)
+type Mutation[query any, input any, output any] func(ctx *Ctx, query query, input input) (*Res[output], error)
 
 type ErrorResponse struct {
 	Message string `json:"message"`

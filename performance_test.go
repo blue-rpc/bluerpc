@@ -19,7 +19,7 @@ func TestTSPerformance(t *testing.T) {
 		DisableInfoPrinting: true,
 	})
 
-	query := NewQuery[test_query, test_output](app, func(ctx *Ctx, queryParams test_query) (*Res[test_output], error) {
+	query := NewQuery[test_query, test_output](app, func(ctx *Ctx, query test_query) (*Res[test_output], error) {
 		return &Res[test_output]{
 			Status: 200,
 			Body: test_output{
@@ -29,7 +29,7 @@ func TestTSPerformance(t *testing.T) {
 			},
 		}, nil
 	})
-	mut := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, queryParams test_query, input test_input) (*Res[test_output], error) {
+	mut := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
 		return &Res[test_output]{
 			Status: 200,
 			Body: test_output{

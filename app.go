@@ -13,25 +13,16 @@ type App struct {
 	port           string
 	serveMux       *http.ServeMux
 	server         *http.Server
-	mws            []Handler
 	mutex          sync.Mutex
 	recalculateMux bool
 }
 
 func New(blueConfig ...*Config) *App {
 
-	var cfg *Config
-
-	if len(blueConfig) > 0 {
-		cfg = blueConfig[0]
-	} else {
-		cfg = &Config{}
-	}
-
-	cfg = setAppDefaults(blueConfig)
+	cfg := setAppDefaults(blueConfig)
 
 	startRouter := &Router{
-		Routes:      map[string]*Router{},
+		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mux:         http.NewServeMux(),
 		validatorFn: &cfg.ValidatorFn,
@@ -65,9 +56,9 @@ func setAppDefaults(blueConfig []*Config) *Config {
 	if cfg.OutputPath == "" {
 		cfg.OutputPath = tsOutputPath
 	}
-
 	if cfg.ErrorMiddleware == nil {
 		cfg.ErrorMiddleware = DefaultErrorMiddleware
+
 	}
 
 	return cfg
@@ -84,13 +75,13 @@ func (a *App) Router(relativePath string) *Router {
 	newRouter := &Router{
 		absPath:     relativePath,
 		mux:         http.NewServeMux(),
-		Routes:      map[string]*Router{},
+		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mws:         []Handler{},
 		validatorFn: &a.config.ValidatorFn,
 		app:         a,
 	}
-	a.startRoute.Routes[relativePath] = newRouter
+	a.startRoute.routes[relativePath] = newRouter
 	return newRouter
 
 }

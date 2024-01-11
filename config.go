@@ -14,7 +14,7 @@ type Config struct {
 
 	// Boolean that determines if any typescript types will be generated.
 	// Default is false. Set this to TRUE in production
-	disableGenerateTS bool
+	DisableGenerateTS bool
 
 	//The function that will be used to validate your struct fields.
 	ValidatorFn validatorFn

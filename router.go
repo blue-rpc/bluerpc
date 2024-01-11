@@ -8,7 +8,7 @@ import (
 type Router struct {
 	procedures  map[string]*ProcedureInfo
 	app         *App
-	Routes      map[string]*Router
+	routes      map[string]*Router
 	mux         *http.ServeMux
 	absPath     string
 	mws         []Handler
@@ -28,6 +28,12 @@ func (router *Router) getValidatorFn() *validatorFn {
 func (router *Router) getApp() *App {
 	return router.app
 }
+
+// changes the validator function for all of the connected procedures unless those procedures directly have validator functions set
+func (r *Router) Validator(fn validatorFn) {
+	r.validatorFn = &fn
+}
+
 func (r *Router) Router(relativePath string, procedures ...map[string]Procedure[any, any, any]) *Router {
 	// Cannot have an empty prefix
 	if relativePath == "" {
@@ -40,13 +46,13 @@ func (r *Router) Router(relativePath string, procedures ...map[string]Procedure[
 	newRouter := &Router{
 		absPath:     r.absPath + relativePath,
 		mux:         http.NewServeMux(),
-		Routes:      map[string]*Router{},
+		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mws:         []Handler{},
 		validatorFn: r.validatorFn,
 		app:         r.app,
 	}
-	r.Routes[relativePath] = newRouter
+	r.routes[relativePath] = newRouter
 	var proceduresMap map[string]Procedure[any, any, any]
 	if len(procedures) > 0 {
 		proceduresMap = procedures[0]
@@ -114,33 +120,11 @@ func (r *Router) Use(middlewares ...Handler) {
 	r.mws = append(r.mws, middlewares...)
 
 }
-func (r *Router) handle(h Handler) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := createCtx(w, r)
-		h(ctx)
-	}
-}
 
-// func (r *Router) runMws(ctx *http.RequestCtx) error {
-
-// 	if len(r.mws) == 0 {
-// 		return nil
-// 	}
-
-//		blueRPCCtx := createCtx(ctx)
-//		for i := 0; i < len(r.mws); i++ {
-//			blueRPCCtx.indexHandler = i
-//			err := (*r.mws[i])(blueRPCCtx)
-//			if err != nil {
-//				return err
-//			}
-//		}
-//	}
 func createCtx(w http.ResponseWriter, r *http.Request) *Ctx {
 	return &Ctx{
-		httpW:        w,
-		httpR:        r,
-		indexHandler: 0,
+		httpW: w,
+		httpR: r,
 	}
 
 }

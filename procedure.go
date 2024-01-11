@@ -11,17 +11,18 @@ var (
 	MUTATION Method = "mutation"
 )
 
-type Procedure[queryParams any, input any, output any] struct {
-	queryParamsSchema *queryParams
-	inputSchema       *input
-	outputSchema      *output
+type Procedure[query any, input any, output any] struct {
+	querySchema  *query
+	inputSchema  *input
+	outputSchema *output
 
 	method      Method
 	app         *App
 	validatorFn *validatorFn
 
-	queryHandler    Query[queryParams, output]
-	mutationHandler Mutation[queryParams, input, output]
+	acceptedContentType []string
+	queryHandler        Query[query, output]
+	mutationHandler     Mutation[query, input, output]
 }
 type ProcedureInfo struct {
 	method      Method
@@ -36,15 +37,15 @@ type ProcedureInfo struct {
 // Creates a new query procedure that can be attached to groups / app root.
 // The generic arguments specify the structure for validating query parameters (the query Params, the body of the request and the resulting handler output).
 // Use any to avoid validation
-func NewMutation[queryParams any, input any, output any](app *App, mutation Mutation[queryParams, input, output]) *Procedure[queryParams, input, output] {
+func NewMutation[query any, input any, output any](app *App, mutation Mutation[query, input, output]) *Procedure[query, input, output] {
 
-	var queryParamsInstance *queryParams
+	var queryInstance *query
 	var inputInstance *input
 	var outputInstance *output
 
-	if getType(new(queryParams)).Kind() == reflect.Struct {
-		temp := new(queryParams)
-		queryParamsInstance = temp
+	if getType(new(query)).Kind() == reflect.Struct {
+		temp := new(query)
+		queryInstance = temp
 	}
 
 	if getType(new(input)).Kind() == reflect.Struct {
@@ -58,47 +59,43 @@ func NewMutation[queryParams any, input any, output any](app *App, mutation Muta
 		outputInstance = temp
 	}
 
-	return &Procedure[queryParams, input, output]{
-		app:               app,
-		validatorFn:       &app.config.ValidatorFn,
-		inputSchema:       inputInstance,
-		queryParamsSchema: queryParamsInstance,
-		outputSchema:      outputInstance,
-		method:            MUTATION,
-		mutationHandler:   mutation,
+	return &Procedure[query, input, output]{
+		app:                 app,
+		validatorFn:         &app.config.ValidatorFn,
+		inputSchema:         inputInstance,
+		querySchema:         queryInstance,
+		outputSchema:        outputInstance,
+		method:              MUTATION,
+		mutationHandler:     mutation,
+		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
 	}
 }
 
 // Creates a new query procedure that can be attached to groups / app root.
 // The generic arguments specify the structure for validating query parameters (the query Params and the resulting handler output).
 // Use any to avoid validation
-func NewQuery[queryParams any, output any](app *App, query Query[queryParams, output]) *Procedure[queryParams, any, output] {
+func NewQuery[query any, output any](app *App, queryFn Query[query, output]) *Procedure[query, any, output] {
 
-	var queryParamsInstance *queryParams
-	var outputInstance *output
+	queryInstance := new(query)
+	outputInstance := new(output)
 
-	return &Procedure[queryParams, any, output]{
-		app:               app,
-		validatorFn:       &app.config.ValidatorFn,
-		outputSchema:      outputInstance,
-		queryParamsSchema: queryParamsInstance,
-		method:            QUERY,
-		queryHandler:      query,
+	return &Procedure[query, any, output]{
+		app:                 app,
+		validatorFn:         &app.config.ValidatorFn,
+		outputSchema:        outputInstance,
+		querySchema:         queryInstance,
+		method:              QUERY,
+		queryHandler:        queryFn,
+		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
 	}
 }
-func createEmptyStruct[T any]() (interface{}, bool) {
-	var typeOfT reflect.Type
 
-	// Creating a zero value of type T and getting its reflection type
-	zeroVal := new(T)
-	typeOfT = reflect.TypeOf(zeroVal).Elem()
+// Changes the validator function for this particular procedure
+func (p *Procedure[query, input, output]) Validator(fn validatorFn) {
+	p.validatorFn = &fn
+}
 
-	// Check if the type is a struct
-	if typeOfT.Kind() == reflect.Struct {
-		// Create an empty instance of the struct
-		emptyStruct := reflect.New(typeOfT).Elem().Interface()
-		return emptyStruct, true
-	}
-
-	return nil, false
+// determines which content type should a request have in order for it to be valid.
+func (p *Procedure[query, input, output]) AcceptedContentType(contentTypes ...string) {
+	p.acceptedContentType = contentTypes
 }

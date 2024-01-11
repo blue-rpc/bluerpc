@@ -13,13 +13,16 @@ import (
 )
 
 func (a *App) Listen(port string) error {
-	if a.recalculateMux == true {
-		nestedMux, totalRoutes := buildMux(a.startRoute, []Handler{}, 0)
-		generateTs(a)
+	if a.recalculateMux {
+
+		nestedMux, totalRoutes := buildMux(a.startRoute, a.startRoute.mws, 0)
+		if !a.config.DisableGenerateTS {
+			generateTs(a)
+		}
 		a.serveMux = &http.ServeMux{}
 		a.serveMux.Handle("/", nestedMux)
 
-		if a.config.DisableInfoPrinting == false {
+		if !a.config.DisableInfoPrinting {
 			var serverUrl string
 			if a.config.ServerURL == "" {
 				serverUrl = "http://127.0.0.1"
@@ -66,10 +69,16 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 
 		localSlug := slug
 		localProc := proc
+
+		// if the procedure slug starts with : that means this is a dynamic route. we store the slug inside of the dynamic slug in order for us to store that variable for later use when validating the query params
+		if strings.HasPrefix(localSlug, "/:") {
+			localSlug = "/"
+		}
 		mux.HandleFunc(localSlug, func(w http.ResponseWriter, r *http.Request) {
 			ctx := createCtx(w, r)
 			var allHandlersArray []Handler
 			if methodsMatch(r.Method, localProc.method) {
+
 				allHandlersArray = append(router.mws, localProc.handler)
 			} else {
 				allHandlersArray = append(router.mws, func(Ctx *Ctx) error {
@@ -82,7 +91,7 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		})
 	}
 
-	for slug, route := range router.Routes {
+	for slug, route := range router.routes {
 		nextMws := append(prevMws, route.mws...)
 		nestedMux, newTotalRoutes := buildMux(route, nextMws, totalRoutes)
 		totalRoutes = newTotalRoutes
