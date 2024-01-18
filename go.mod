@@ -1,4 +1,4 @@
-module github.com/blue-RPC/bluerpc
+module github.com/blue-rpc/bluerpc
 
 go 1.21.4
 
