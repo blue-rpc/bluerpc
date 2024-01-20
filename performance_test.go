@@ -9,6 +9,16 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type performance_test_input struct {
+	House string `paramName:"house" validate:"required"`
+}
+type performance_test_output struct {
+	FieldOneOut   string   `paramName:"fieldOneOut" validate:"required"`
+	FieldTwoOut   string   `paramName:"fieldTwoOut" `
+	FieldThreeOut string   `paramName:"fieldThreeOut" validate:"required"`
+	FieldFourOut  []string `paramName:"fieldFourOut" `
+}
+
 func TestTSPerformance(t *testing.T) {
 	fmt.Printf(DefaultColors.Green + "TESTING PERFORMANCE: \n" + DefaultColors.Reset)
 
@@ -19,20 +29,20 @@ func TestTSPerformance(t *testing.T) {
 		DisableInfoPrinting: true,
 	})
 
-	query := NewQuery[test_query, test_output](app, func(ctx *Ctx, query test_query) (*Res[test_output], error) {
-		return &Res[test_output]{
+	query := NewQuery[test_query, performance_test_output](app, func(ctx *Ctx, query test_query) (*Res[performance_test_output], error) {
+		return &Res[performance_test_output]{
 			Status: 200,
-			Body: test_output{
+			Body: performance_test_output{
 				FieldOneOut:   "dwa",
 				FieldTwoOut:   "dwadwa",
 				FieldThreeOut: "dwadwadwa",
 			},
 		}, nil
 	})
-	mut := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
-		return &Res[test_output]{
+	mut := NewMutation[test_query, performance_test_input, performance_test_output](app, func(ctx *Ctx, query test_query, input performance_test_input) (*Res[performance_test_output], error) {
+		return &Res[performance_test_output]{
 			Status: 200,
-			Body: test_output{
+			Body: performance_test_output{
 				FieldOneOut:   "dwadwa",
 				FieldTwoOut:   "dwadwadwa",
 				FieldThreeOut: "dwadwadwad",

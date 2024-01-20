@@ -36,7 +36,6 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	}
 
 	absPath := route.getAbsPath()
-	validatorFn := *proc.validatorFn
 	fullRoute := absPath + slug
 	fullHandler := func(c *Ctx) error {
 
@@ -67,7 +66,7 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 			}
 		}
 
-		err = validateOutput(validatorFn, proc, res, fullRoute, MUTATION)
+		err = validateOutput(proc, res, fullRoute, MUTATION)
 		if err != nil {
 			return err
 		}
@@ -96,15 +95,16 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output], slug string) (query, error) {
 
 	queryParamInstance := new(query)
+	validatorFn := *proc.validatorFn
 
-	if proc.querySchema == nil || proc.validatorFn == nil {
+	if proc.querySchema == nil || validatorFn == nil {
 		return *queryParamInstance, nil
 	}
 
 	if err := c.queryParser(queryParamInstance, slug); err != nil {
 		return *queryParamInstance, err
 	}
-	if err := (*proc.validatorFn)(queryParamInstance); err != nil {
+	if err := validatorFn(queryParamInstance); err != nil {
 
 		return *queryParamInstance, &Error{
 			Code:    http.StatusBadRequest,
@@ -118,7 +118,8 @@ func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[que
 }
 func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output]) (input, error) {
 	inputInstance := new(input)
-	if proc.inputSchema == nil || proc.validatorFn == nil {
+	validatorFn := *proc.validatorFn
+	if proc.inputSchema == nil || validatorFn == nil {
 		return *inputInstance, nil
 	}
 	if err := c.bodyParser(inputInstance); err != nil {
@@ -126,7 +127,7 @@ func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[que
 		return *inputInstance, err
 	}
 	// Validate the struct
-	if err := (*proc.validatorFn)(inputInstance); err != nil {
+	if err := validatorFn(inputInstance); err != nil {
 
 		return *inputInstance, &Error{
 			Code:    http.StatusBadRequest,
@@ -136,7 +137,9 @@ func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[que
 	}
 	return *inputInstance, nil
 }
-func validateOutput[query any, input any, output any](validatorFn validatorFn, proc *Procedure[query, input, output], res *Res[output], path string, method Method) error {
+func validateOutput[query any, input any, output any](proc *Procedure[query, input, output], res *Res[output], path string, method Method) error {
+
+	validatorFn := *proc.validatorFn
 	if proc.outputSchema == nil || validatorFn == nil {
 		return nil
 	}

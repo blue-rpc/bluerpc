@@ -43,6 +43,8 @@ func (a *App) Listen(port string) error {
 		Addr:    port,
 		Handler: a.serveMux,
 	}
+	a.PrintRoutes()
+
 	func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server Crashed : %v", err)

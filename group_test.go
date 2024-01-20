@@ -8,6 +8,22 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type group_test_local_query struct {
+	Id                      string `paramName:"somethingotherthanId" validate:"required"`
+	SomethingOtherThanQuery string `paramName:"query" validate:"required"`
+}
+
+type group_test_input struct {
+	House string `paramName:"house" validate:"required"`
+}
+
+type group_test_output struct {
+	FieldOneOut   string   `paramName:"fieldOneOut" validate:"required"`
+	FieldTwoOut   string   `paramName:"fieldTwoOut" `
+	FieldThreeOut string   `paramName:"fieldThreeOut" validate:"required"`
+	FieldFourOut  []string `paramName:"fieldFourOut" `
+}
+
 func TestGroup(t *testing.T) {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -19,11 +35,11 @@ func TestGroup(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewQuery[any, test_output](app, func(ctx *Ctx, query any) (*Res[test_output], error) {
-		return &Res[test_output]{
+	proc := NewQuery[any, group_test_output](app, func(ctx *Ctx, query any) (*Res[group_test_output], error) {
+		return &Res[group_test_output]{
 			Status: 200,
 			Header: Header{},
-			Body: test_output{
+			Body: group_test_output{
 				FieldOneOut:   "dwa",
 				FieldTwoOut:   "dwadwa",
 				FieldThreeOut: "dwadwadwa",

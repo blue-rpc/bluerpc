@@ -14,6 +14,15 @@ import (
 type test_query struct {
 	Something string `query:"query" validate:"required"`
 }
+type procedure_test_input struct {
+	House string `paramName:"house" validate:"required"`
+}
+type procedure_test_output struct {
+	FieldOneOut   string   `paramName:"fieldOneOut" validate:"required"`
+	FieldTwoOut   string   `paramName:"fieldTwoOut" `
+	FieldThreeOut string   `paramName:"fieldThreeOut" validate:"required"`
+	FieldFourOut  []string `paramName:"fieldFourOut" `
+}
 
 func TestQuery(t *testing.T) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -24,11 +33,11 @@ func TestQuery(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewQuery[test_query, test_output](app, func(ctx *Ctx, query test_query) (*Res[test_output], error) {
-		return &Res[test_output]{
+	proc := NewQuery[test_query, procedure_test_output](app, func(ctx *Ctx, query test_query) (*Res[procedure_test_output], error) {
+		return &Res[procedure_test_output]{
 			Status: 200,
 			Header: Header{},
-			Body: test_output{
+			Body: procedure_test_output{
 				FieldOneOut:   "dwa",
 				FieldTwoOut:   "dwadwa",
 				FieldThreeOut: "dwadwadwa",
@@ -82,7 +91,7 @@ func TestQuery(t *testing.T) {
 		t.Fatalf(DefaultColors.Red+"Could not read the body", err.Error())
 	}
 
-	var output test_output
+	var output procedure_test_output
 	if err := json.Unmarshal(body, &output); err != nil {
 		t.Fatalf(DefaultColors.Red+"Failed to unmarshal response: %v", err)
 	}
@@ -103,11 +112,11 @@ func TestMutation(t *testing.T) {
 		ValidatorFn: validate.Struct,
 	})
 
-	proc := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
+	proc := NewMutation[test_query, procedure_test_input, procedure_test_output](app, func(ctx *Ctx, query test_query, input procedure_test_input) (*Res[procedure_test_output], error) {
 
-		return &Res[test_output]{
+		return &Res[procedure_test_output]{
 			Status: 200,
-			Body: test_output{
+			Body: procedure_test_output{
 				FieldOneOut:   "dwaawdwa",
 				FieldTwoOut:   "dwa",
 				FieldThreeOut: "dawdwadwadwa",
@@ -118,7 +127,7 @@ func TestMutation(t *testing.T) {
 	proc.Attach(app, "/test")
 	// app.Listen(":3000")
 
-	inputData := test_input{
+	inputData := procedure_test_input{
 		House: "hello world",
 	}
 
@@ -183,7 +192,7 @@ func TestMutation(t *testing.T) {
 		t.Fatalf(DefaultColors.Red+"Could not read the body", err.Error())
 	}
 
-	var output test_output
+	var output procedure_test_output
 	if err := json.Unmarshal(body, &output); err != nil {
 		t.Fatalf(DefaultColors.Red+"Failed to unmarshal response: %v", err)
 	}
@@ -195,11 +204,11 @@ func TestMutation(t *testing.T) {
 	fmt.Println(DefaultColors.Green + "PASSED VALID MUTATION")
 	fmt.Println(DefaultColors.Green + "TESTING INVALID OUTPUT")
 
-	fakeProc := NewMutation[test_query, test_input, test_output](app, func(ctx *Ctx, query test_query, input test_input) (*Res[test_output], error) {
+	fakeProc := NewMutation[test_query, procedure_test_input, procedure_test_output](app, func(ctx *Ctx, query test_query, input procedure_test_input) (*Res[procedure_test_output], error) {
 
-		return &Res[test_output]{
+		return &Res[procedure_test_output]{
 			Status: 200,
-			Body: test_output{
+			Body: procedure_test_output{
 				FieldOneOut:   "",
 				FieldTwoOut:   "dwa",
 				FieldThreeOut: query.Something,
