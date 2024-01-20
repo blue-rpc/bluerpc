@@ -29,13 +29,17 @@ func GoFieldsToTSObj(someStruct reflect.Type) string {
 			regex := regexp.MustCompile("[^a-zA-Z]+")
 			fieldName = regex.ReplaceAllString(paramName, "")
 		}
+		_, hasRequired := field.Tag.Lookup("required")
+		validateTag := field.Tag.Get("validate")
+		hasValidateRequired := strings.Contains(validateTag, "required")
+
+		if !hasRequired && !hasValidateRequired {
+			fieldName += "?"
+		}
 
 		// Append TypeScript field definition to the StringBuilder
 		stringBuilder.WriteString(fmt.Sprintf(" %s: %s", fieldName, goTypeToTSType(fieldType)))
-		tags := field.Tag.Get("validate")
-		if !strings.Contains(tags, "required") {
-			stringBuilder.WriteString("|undefined")
-		}
+
 		stringBuilder.WriteString(",")
 
 	}
