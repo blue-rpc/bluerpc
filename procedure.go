@@ -1,6 +1,7 @@
 package bluerpc
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -12,9 +13,9 @@ var (
 )
 
 type Procedure[query any, input any, output any] struct {
-	querySchema  *query
-	inputSchema  *input
-	outputSchema *output
+	hasQuery  bool
+	hasInput  bool
+	hasOutput bool
 
 	method      Method
 	app         *App
@@ -39,35 +40,18 @@ type ProcedureInfo struct {
 // Use any to avoid validation
 func NewMutation[query any, input any, output any](app *App, mutation Mutation[query, input, output]) *Procedure[query, input, output] {
 
-	var queryInstance *query
-	var inputInstance *input
-	var outputInstance *output
-
-	if getType(new(query)).Kind() == reflect.Struct {
-		temp := new(query)
-		queryInstance = temp
-	}
-
-	if getType(new(input)).Kind() == reflect.Struct {
-		temp := new(input)
-		inputInstance = temp
-	}
-
-	// Check if output is a struct
-	if getType(new(output)).Kind() == reflect.Struct {
-		temp := new(output)
-		outputInstance = temp
-	}
+	var queryInstance query
+	checkIfQueryStruct(queryInstance)
 
 	return &Procedure[query, input, output]{
 		app:                 app,
 		validatorFn:         &app.config.ValidatorFn,
-		inputSchema:         inputInstance,
-		querySchema:         queryInstance,
-		outputSchema:        outputInstance,
 		method:              MUTATION,
 		mutationHandler:     mutation,
 		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
+		hasQuery:            !isEmptyInterface[query](),
+		hasInput:            !isEmptyInterface[input](),
+		hasOutput:           !isEmptyInterface[output](),
 	}
 }
 
@@ -76,17 +60,17 @@ func NewMutation[query any, input any, output any](app *App, mutation Mutation[q
 // Use any to avoid validation
 func NewQuery[query any, output any](app *App, queryFn Query[query, output]) *Procedure[query, any, output] {
 
-	queryInstance := new(query)
-	outputInstance := new(output)
+	var queryInstance query
+	checkIfQueryStruct(queryInstance)
 
 	return &Procedure[query, any, output]{
 		app:                 app,
 		validatorFn:         &app.config.ValidatorFn,
-		outputSchema:        outputInstance,
-		querySchema:         queryInstance,
 		method:              QUERY,
 		queryHandler:        queryFn,
 		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
+		hasQuery:            !isEmptyInterface[query](),
+		hasOutput:           !isEmptyInterface[output](),
 	}
 }
 
@@ -98,4 +82,31 @@ func (p *Procedure[query, input, output]) Validator(fn validatorFn) {
 // determines which content type should a request have in order for it to be valid.
 func (p *Procedure[query, input, output]) AcceptedContentType(contentTypes ...string) {
 	p.acceptedContentType = contentTypes
+}
+
+func isEmptyInterface[T any]() bool {
+	// Create a zero value of type T
+	var zeroT T
+
+	// Use reflect to get the type of zeroT
+	t := reflect.TypeOf(zeroT)
+
+	// Return true if t is an interface and has no methods
+	return t == nil || (t.Kind() == reflect.Interface && t.NumMethod() == 0)
+}
+
+// This function should panic if the query params are not a struct or of type any (interface{})
+func checkIfQueryStruct[query any](arg query) {
+	queryT := reflect.TypeOf(arg) // Reflect on the zero value, not T directly
+
+	//if this is an empty interface return
+	if queryT == nil || (queryT.Kind() == reflect.Interface && queryT.NumMethod() == 0) {
+		return
+	}
+
+	if queryT.Kind() == reflect.Ptr && queryT.Elem().Kind() != reflect.Struct {
+		panic(fmt.Sprintf("generic argument Query must be a struct or a pointer to a struct or any (interface{}), got %s", queryT.Elem().Kind()))
+	} else if queryT.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("generic argument Query must be a struct, got %s", queryT.Kind()))
+	}
 }

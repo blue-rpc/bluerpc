@@ -10,6 +10,9 @@ import (
 func GoFieldsToTSObj(someStruct reflect.Type) string {
 	stringBuilder := strings.Builder{}
 
+	if someStruct == nil {
+		return "any"
+	}
 	if someStruct.Kind() == reflect.Ptr {
 		someStruct = someStruct.Elem()
 	} else if someStruct.Kind() != reflect.Struct {

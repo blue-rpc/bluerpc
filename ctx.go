@@ -242,10 +242,6 @@ func (c *Ctx) decodeJSON(targetStruct interface{}) error {
 				keyName = fieldInfo.Name // Fallback to field's name
 			}
 		}
-
-		// Use strings.ToLower or another strategy if JSON keys are case-insensitive
-		keyName = strings.ToLower(keyName)
-
 		// Assign the corresponding value from the map
 		if jsonValue, ok := dataMap[keyName]; ok {
 			fieldValue := reflect.ValueOf(jsonValue)

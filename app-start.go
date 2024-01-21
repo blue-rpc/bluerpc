@@ -13,6 +13,8 @@ import (
 )
 
 func (a *App) Listen(port string) error {
+	a.port = port
+
 	if a.recalculateMux {
 
 		nestedMux, totalRoutes := buildMux(a.startRoute, a.startRoute.mws, 0)
@@ -32,18 +34,16 @@ func (a *App) Listen(port string) error {
 
 			serverUrl += port
 			printStartServerInfo(totalRoutes, serverUrl)
+			a.PrintRoutes()
 		}
 
 		a.recalculateMux = false
 	}
 
-	a.port = port
-
 	a.server = &http.Server{
 		Addr:    port,
 		Handler: a.serveMux,
 	}
-	a.PrintRoutes()
 
 	func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -161,7 +161,7 @@ func (a *App) Shutdown() {
 
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5)
 	defer cancel()
 
 	// Shutdown the server gracefully

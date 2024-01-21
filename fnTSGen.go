@@ -96,6 +96,9 @@ func generateMutationFnBody(stringBuilder *strings.Builder, isParams bool, addre
 func getType(t interface{}) reflect.Type {
 	typeOfT := reflect.TypeOf(t)
 
+	if typeOfT == nil {
+		return nil
+	}
 	// Check if the type is a pointer
 	if typeOfT.Kind() == reflect.Ptr {
 		// Get the type the pointer points to

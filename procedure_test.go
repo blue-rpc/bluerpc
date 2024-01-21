@@ -12,10 +12,10 @@ import (
 )
 
 type test_query struct {
-	Something string `query:"query" validate:"required"`
+	Something string `paramName:"query" validate:"required"`
 }
 type procedure_test_input struct {
-	House string `paramName:"house" validate:"required"`
+	House string `paramName:"House" validate:"required"`
 }
 type procedure_test_output struct {
 	FieldOneOut   string   `paramName:"fieldOneOut" validate:"required"`
@@ -47,7 +47,7 @@ func TestQuery(t *testing.T) {
 	proc.Attach(app, "/test")
 
 	// app.Listen(":3000")
-	req, err := http.NewRequest("GET", "http://localhost:8080/bluerpc/test", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/test", nil)
 	if err != nil {
 		t.Fatalf(DefaultColors.Red+"Could not create a new request", err.Error())
 	}
@@ -77,7 +77,7 @@ func TestQuery(t *testing.T) {
 
 	// TESTING VALID QUERY PARAMS
 	fmt.Println(DefaultColors.Green + "TESTING VALID QUERY PARAMS")
-	req, err = http.NewRequest("GET", "http://localhost:8080/bluerpc/test?query=dwa", nil)
+	req, err = http.NewRequest("GET", "http://localhost:8080/test?query=dwa", nil)
 	if err != nil {
 		t.Fatalf(DefaultColors.Red+"Could not create a new request", err.Error())
 	}
@@ -137,7 +137,7 @@ func TestMutation(t *testing.T) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", "http://localhost:8080/bluerpc/test", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "http://localhost:8080/test", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -176,7 +176,7 @@ func TestMutation(t *testing.T) {
 		return
 	}
 	fmt.Println(DefaultColors.Green + "TESTING VALID MUTATION PARAMS" + DefaultColors.Reset)
-	req, err = http.NewRequest("POST", "http://localhost:8080/bluerpc/test?query=dwa", bytes.NewBuffer(jsonData))
+	req, err = http.NewRequest("POST", "http://localhost:8080/test?query=dwa", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -218,7 +218,7 @@ func TestMutation(t *testing.T) {
 	})
 	fakeProc.Attach(app, "/error")
 
-	req, err = http.NewRequest("POST", "http://localhost:8080/bluerpc/error?query=dwa", bytes.NewBuffer(jsonData))
+	req, err = http.NewRequest("POST", "http://localhost:8080/error?query=dwa", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {

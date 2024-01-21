@@ -36,6 +36,9 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	}
 
 	absPath := route.getAbsPath()
+	if absPath == "/" {
+		absPath = ""
+	}
 	fullRoute := absPath + slug
 	fullHandler := func(c *Ctx) error {
 
@@ -52,7 +55,7 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 				return err
 			}
 		case MUTATION:
-			err := checkContentTypeValidity(c.httpW.Header().Get("Content-Type"), proc.acceptedContentType)
+			err := checkContentTypeValidity(c.httpR.Header.Get("Content-Type"), proc.acceptedContentType)
 			if err != nil {
 				return err
 			}
@@ -79,13 +82,12 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	}
 
 	route.addProcedure(slug, &ProcedureInfo{
-		method:      proc.method,
-		handler:     fullHandler,
-		validatorFn: route.getValidatorFn(),
-
-		querySchema:  proc.querySchema,
-		inputSchema:  proc.inputSchema,
-		outputSchema: proc.outputSchema,
+		method:       proc.method,
+		handler:      fullHandler,
+		validatorFn:  route.getValidatorFn(),
+		querySchema:  new(query),
+		inputSchema:  new(input),
+		outputSchema: new(output),
 	})
 	app := route.getApp()
 
@@ -93,16 +95,19 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 }
 
 func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output], slug string) (query, error) {
-
 	queryParamInstance := new(query)
-	validatorFn := *proc.validatorFn
 
-	if proc.querySchema == nil || validatorFn == nil {
+	if !proc.hasQuery {
 		return *queryParamInstance, nil
 	}
 
 	if err := c.queryParser(queryParamInstance, slug); err != nil {
 		return *queryParamInstance, err
+	}
+
+	validatorFn := *proc.validatorFn
+	if validatorFn == nil {
+		return *queryParamInstance, nil
 	}
 	if err := validatorFn(queryParamInstance); err != nil {
 
@@ -118,13 +123,17 @@ func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[que
 }
 func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[query, input, output]) (input, error) {
 	inputInstance := new(input)
-	validatorFn := *proc.validatorFn
-	if proc.inputSchema == nil || validatorFn == nil {
+	if !proc.hasInput {
 		return *inputInstance, nil
 	}
+
 	if err := c.bodyParser(inputInstance); err != nil {
-		fmt.Println("err here at bodyParser of input", err.Error())
 		return *inputInstance, err
+	}
+
+	validatorFn := *proc.validatorFn
+	if validatorFn == nil {
+		return *inputInstance, nil
 	}
 	// Validate the struct
 	if err := validatorFn(inputInstance); err != nil {
@@ -140,7 +149,7 @@ func validateInput[query any, input any, output any](c *Ctx, proc *Procedure[que
 func validateOutput[query any, input any, output any](proc *Procedure[query, input, output], res *Res[output], path string, method Method) error {
 
 	validatorFn := *proc.validatorFn
-	if proc.outputSchema == nil || validatorFn == nil {
+	if !proc.hasOutput || validatorFn == nil {
 		return nil
 	}
 
@@ -207,6 +216,7 @@ func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 func checkContentTypeValidity(contentType string, validContentTypes []string) error {
 
 	fullContentTypes := ""
+
 	for i, validType := range validContentTypes {
 		if validType == contentType {
 			return nil

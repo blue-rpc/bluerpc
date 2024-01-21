@@ -29,10 +29,11 @@ func TestGroup(t *testing.T) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	fmt.Println(DefaultColors.Green + "TESTING NESTED ROUTE" + DefaultColors.Reset)
 
-	fmt.Println(DefaultColors.Green + "TESTING INVALID QUERY PARAMS")
+	fmt.Println(DefaultColors.Green + "TESTING INVALID QUERY PARAMS" + DefaultColors.Reset)
 	app := New(&Config{
 		OutputPath:  "./some-file.ts",
 		ValidatorFn: validate.Struct,
+		// DisableInfoPrinting: true,
 	})
 
 	proc := NewQuery[any, group_test_output](app, func(ctx *Ctx, query any) (*Res[group_test_output], error) {
@@ -50,7 +51,7 @@ func TestGroup(t *testing.T) {
 	depthTwo := depthOne.Router("/depth2")
 
 	proc.Attach(depthTwo, "/test")
-	req, err := http.NewRequest("GET", "http://localhost:3000/bluerpc/depth1/depth2/test", nil)
+	req, err := http.NewRequest("GET", "http://localhost:3000/depth1/depth2/test", nil)
 	if err != nil {
 		t.Fatalf(DefaultColors.Red+"Could not create a new request", err.Error())
 	}

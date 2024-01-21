@@ -3,6 +3,7 @@ package bluerpc
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,8 +20,8 @@ type performance_test_output struct {
 	FieldFourOut  []string `paramName:"fieldFourOut" `
 }
 
-func TestTSPerformance(t *testing.T) {
-	fmt.Printf(DefaultColors.Green + "TESTING PERFORMANCE: \n" + DefaultColors.Reset)
+func TestPerf10(t *testing.T) {
+	fmt.Printf(DefaultColors.Green + "TESTING PERFORMANCE OF 10 DEEP NESTED PROCEDURES: \n" + DefaultColors.Reset)
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	app := New(&Config{
@@ -29,6 +30,54 @@ func TestTSPerformance(t *testing.T) {
 		DisableInfoPrinting: true,
 	})
 
+	var wg sync.WaitGroup
+	fmt.Printf(DefaultColors.Green + "DEPTH: 10 " + DefaultColors.Reset)
+	avgTenTime := getAvg(func() time.Duration {
+		return perfLoop(app, 10, &wg)
+	}, &wg)
+	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 10: %s\n"+DefaultColors.Reset, avgTenTime)
+
+}
+
+func TestPerf100(t *testing.T) {
+	fmt.Printf(DefaultColors.Green + "TESTING PERFORMANCE OF 100 DEEP NESTED PROCEDURES: \n" + DefaultColors.Reset)
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	app := New(&Config{
+		OutputPath:          "./local-some-file.ts",
+		ValidatorFn:         validate.Struct,
+		DisableInfoPrinting: true,
+	})
+
+	var wg sync.WaitGroup
+	fmt.Printf(DefaultColors.Green + "DEPTH: 100 " + DefaultColors.Reset)
+	avgHundredTime := getAvg(func() time.Duration {
+		return perfLoop(app, 100, &wg)
+	}, &wg)
+	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 100: %s\n"+DefaultColors.Reset, avgHundredTime)
+
+}
+func TestPerf1000(t *testing.T) {
+	fmt.Printf(DefaultColors.Green + "TESTING PERFORMANCE OF 1000 DEEP NESTED PROCEDURES: \n" + DefaultColors.Reset)
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	app := New(&Config{
+		OutputPath:          "./local-some-file.ts",
+		ValidatorFn:         validate.Struct,
+		DisableInfoPrinting: true,
+	})
+
+	var wg sync.WaitGroup
+	fmt.Printf(DefaultColors.Green + "DEPTH: 1000 " + DefaultColors.Reset)
+	avgHundredTime := getAvg(func() time.Duration {
+		return perfLoop(app, 100, &wg)
+	}, &wg)
+	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 1000: %s\n"+DefaultColors.Reset, avgHundredTime)
+
+}
+func perfLoop(app *App, num int, wg *sync.WaitGroup) time.Duration {
+	wg.Add(1)
+	defer wg.Done()
 	query := NewQuery[test_query, performance_test_output](app, func(ctx *Ctx, query test_query) (*Res[performance_test_output], error) {
 		return &Res[performance_test_output]{
 			Status: 200,
@@ -49,76 +98,57 @@ func TestTSPerformance(t *testing.T) {
 			},
 		}, nil
 	})
+	fmt.Println("num of rounds", num)
+	currGroup := app.Router("/start")
+	for i := 0; i < num; i++ {
 
-	perfLoop := func(num int) time.Duration {
-		currGroup := app.Router("/start")
-		for i := 0; i < num; i++ {
-			newGrp := currGroup.Router(fmt.Sprintf("depth%d", i))
-			query.Attach(newGrp, "/query")
-			mut.Attach(newGrp, "/mutation")
+		newGrp := currGroup.Router(fmt.Sprintf("depth%d", i))
+		query.Attach(newGrp, "/query")
+		mut.Attach(newGrp, "/mutation")
 
-		}
-		start := time.Now()
+	}
+	start := time.Now()
 
-		go func() {
-			err := app.Listen(":3000")
-			if err != nil {
-				fmt.Println("Error starting the server:", err)
-				return
-			}
-
-		}()
-		for {
-			_, err := http.Get("http://localhost:3000")
-			if err == nil {
-				break
-			}
-			time.Sleep(20 * time.Millisecond) // Adjust the sleep duration as needed
+	go func() {
+		err := app.Listen(fmt.Sprintf(":%d", 3000))
+		if err != nil {
+			fmt.Println("Error starting the server:", err)
+			wg.Done()
+			return
 		}
 
-		// Record elapsed time
-		elapsed := time.Since(start)
+	}()
 
-		// Shut down the server
-		app.Shutdown()
-
-		return elapsed
+	for {
+		_, err := http.Get(fmt.Sprintf("http://localhost:%d", 3000))
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond) // Adjust the sleep duration as needed
 	}
 
-	avgTenTime := getAvg(func() time.Duration {
-		// Replace the arguments with your actual arguments
-		return perfLoop(10)
-	})
-	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 10: %s\n"+DefaultColors.Reset, avgTenTime)
+	// Record elapsed time
+	elapsed := time.Since(start)
 
-	avgHundredTime := getAvg(func() time.Duration {
-		return perfLoop(100)
-	})
-	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENEpRATING DEPTH OF 100: %s \n, difference of by %s from 10\n"+DefaultColors.Reset, avgHundredTime, avgHundredTime-avgTenTime)
+	// Shut down the server
+	app.Shutdown()
 
-	avgHThousandTime := getAvg(func() time.Duration {
-		return perfLoop(1000)
-	})
-	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 1000: %s \n, difference of by %s from 100\n"+DefaultColors.Reset, avgHThousandTime, avgHThousandTime-avgHundredTime)
-
-	avgHTenThousandTime := getAvg(func() time.Duration {
-		return perfLoop(10000)
-	})
-	fmt.Printf(DefaultColors.Green+"AVERAGE TIME FOR GENERATING DEPTH OF 10 000: %s \n, difference of by %s from 1000\n"+DefaultColors.Reset, avgHTenThousandTime, avgHTenThousandTime-avgHThousandTime)
+	return elapsed
 }
-
-func getAvg(someFunc func() time.Duration) time.Duration {
+func getAvg(someFunc func() time.Duration, wg *sync.WaitGroup) time.Duration {
 	var total time.Duration
 
 	// Run the function 100 times
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		// Measure the time taken by the function
 		duration := someFunc()
 		total += duration
+		wg.Wait()
+
 	}
 
 	// Calculate the average time
-	avg := total / 100
+	avg := total / 10
 	return avg
 
 }
