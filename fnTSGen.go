@@ -12,9 +12,6 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 
 	var dynamicSlugNames []string
 	for _, dynamicSlug := range dynamicSlugs {
-		fmt.Println("dynamic slug name", dynamicSlug.Name)
-		fmt.Println("dynamic slug pos", dynamicSlug.Position)
-
 		dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
 	}
 
@@ -32,7 +29,7 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 		stringBuilder.WriteString("void")
 	}
 	stringBuilder.WriteString(">=>")
-	address = addDynamicToAddress(address, dynamicSlugs)
+	address = addDynamicToAddress(address, QUERY, dynamicSlugs)
 	generateQueryFnBody(stringBuilder, query != nil, address)
 }
 
@@ -80,7 +77,7 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 		stringBuilder.WriteString("void")
 	}
 	stringBuilder.WriteString(">=>")
-	address = addDynamicToAddress(address, dynamicSlugs)
+	address = addDynamicToAddress(address, MUTATION, dynamicSlugs)
 	generateMutationFnBody(stringBuilder, isParams, address)
 }
 func generateQueryFnBody(stringBuilder *strings.Builder, isQuery bool, address string) {
@@ -106,8 +103,6 @@ func generateMutationFnBody(stringBuilder *strings.Builder, isParams bool, addre
 	} else {
 		stringBuilder.WriteString("undefined")
 	}
-	stringBuilder.WriteString(",")
-	stringBuilder.WriteString("'" + address + `'`)
 
 	stringBuilder.WriteString(")}")
 }
@@ -127,14 +122,22 @@ func getType(t interface{}) reflect.Type {
 	return typeOfT
 }
 
-func addDynamicToAddress(s string, slugInfos []dynamicSlugInfo) string {
+// adds the needed dynamic typescript string to the address in the generated ts.
+func addDynamicToAddress(s string, method Method, slugInfos []dynamicSlugInfo) string {
 	if len(slugInfos) == 0 {
 		return s
 	}
 	splitStr := strings.Split(s, "/")
 
 	for _, dsi := range slugInfos {
-		splitStr[len(splitStr)-1-dsi.Position] = fmt.Sprintf(`${query.%sSlug}`, dsi.Name)
+		var dynTsPart string
+		switch method {
+		case QUERY:
+			dynTsPart = fmt.Sprintf(`query.%sSlug`, dsi.Name)
+		case MUTATION:
+			dynTsPart = fmt.Sprintf(`parameters.query.%sSlug`, dsi.Name)
+		}
+		splitStr[len(splitStr)-1-dsi.Position] = fmt.Sprintf(`${%s}`, dynTsPart)
 	}
 	return strings.Join(splitStr, "/")
 }

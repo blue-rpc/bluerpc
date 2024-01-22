@@ -1,7 +1,6 @@
 package bluerpc
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -56,7 +55,6 @@ func findDynamicSlugs(s string) (info []dynamicSlugInfo) {
 	//we start at 1 to avoid the first empty element. If the string starts with a slash the first element will be empty
 	for i := 1; i < len(routes); i++ {
 		route := routes[i]
-		fmt.Println("route from find dynamic slugs", route)
 		if route[0] == ':' {
 			info = append(info, dynamicSlugInfo{
 				Position: len(routes) - 1 - i,

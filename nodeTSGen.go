@@ -14,7 +14,6 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 		keys := getSortedKeys(router.procedures)
 		for i, slug := range keys {
 			fullPath := currentPath + slug
-			fmt.Println("full path from node to ts", fullPath)
 
 			proc := router.procedures[slug]
 			slug = strings.Replace(slug, "/", "", 1)
