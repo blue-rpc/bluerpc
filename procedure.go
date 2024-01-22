@@ -25,6 +25,13 @@ type Procedure[query any, input any, output any] struct {
 	queryHandler        Query[query, output]
 	mutationHandler     Mutation[query, input, output]
 }
+
+// position refers to the position of the slug FROM THE END
+// meaning in /api/:dynamic ":dynamic" will be in POSITION 0
+type dynamicSlugInfo struct {
+	Position int
+	Name     string
+}
 type ProcedureInfo struct {
 	method      Method
 	validatorFn *validatorFn
@@ -32,6 +39,8 @@ type ProcedureInfo struct {
 	querySchema  interface{}
 	inputSchema  interface{}
 	outputSchema interface{}
+
+	dynamicSlugs []dynamicSlugInfo
 	handler      func(ctx *Ctx) error
 }
 

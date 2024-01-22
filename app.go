@@ -29,13 +29,20 @@ func New(blueConfig ...*Config) *App {
 		recalculateMux: true,
 	}
 
+	mws := []Handler{}
+	if cfg.CORS_Origin != "" {
+		corsMw := createDefaultCorsOrigin(cfg.CORS_Origin)
+		mws = append(mws, corsMw)
+	}
+
+	mws = append(mws, cfg.ErrorMiddleware)
 	startRouter := &Router{
 		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
 		mux:         http.NewServeMux(),
 		validatorFn: &cfg.ValidatorFn,
 		absPath:     "",
-		mws:         []Handler{cfg.ErrorMiddleware},
+		mws:         mws,
 		app:         &newApp,
 	}
 

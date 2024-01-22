@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func GoFieldsToTSObj(someStruct reflect.Type) string {
+func goToTsField(someStruct reflect.Type, dynamicSlugNames ...string) string {
 	stringBuilder := strings.Builder{}
 
 	if someStruct == nil {
@@ -39,7 +39,9 @@ func GoFieldsToTSObj(someStruct reflect.Type) string {
 		if !hasRequired && !hasValidateRequired {
 			fieldName += "?"
 		}
-
+		if dynamicSlugNames != nil && len(dynamicSlugNames) > 0 && sliceStrContains(dynamicSlugNames, fieldName) {
+			fieldName += "Slug"
+		}
 		// Append TypeScript field definition to the StringBuilder
 		stringBuilder.WriteString(fmt.Sprintf(" %s: %s", fieldName, goTypeToTSType(fieldType)))
 
@@ -51,23 +53,30 @@ func GoFieldsToTSObj(someStruct reflect.Type) string {
 }
 
 func goTypeToTSType(t reflect.Type) string {
+	// Check if the type is a named type and if its Kind is one of the basic types
+	if t.Name() != "" && t.Kind() != reflect.Struct && t.Kind() != reflect.Interface {
+		switch t.Kind() {
+		case reflect.String:
+			return "string"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+			return "number"
+		case reflect.Bool:
+			return "boolean"
+		}
+	}
 
 	switch t.Kind() {
-	case reflect.String:
-		return "string"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-		return "number"
-	case reflect.Bool:
-		return "boolean"
 	case reflect.Slice, reflect.Array:
 		elemType := goTypeToTSType(t.Elem())
-		return "Array<" + elemType + ">"
-		// Add more type mappings as needed
+		return fmt.Sprintf("Array<%s>", elemType)
 	case reflect.Map:
 		keyType := goTypeToTSType(t.Key())
 		valueType := goTypeToTSType(t.Elem())
 		return fmt.Sprintf("Record<%s, %s>", keyType, valueType)
+	case reflect.Struct, reflect.Interface:
+		// Handle structs and interfaces specifically if needed
+		return goToTsField(t)
 	default:
 		return "any"
 	}

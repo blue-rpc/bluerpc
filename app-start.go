@@ -61,6 +61,7 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 	// mux.HandleFunc("/hello-world", func(w http.ResponseWriter, r *http.Request) {
 	// 	w.Write([]byte("hello world"))
 	// })
+
 	if router.mws == nil {
 		router.mws = prevMws
 	} else {
@@ -79,11 +80,12 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		mux.HandleFunc(localSlug, func(w http.ResponseWriter, r *http.Request) {
 			ctx := createCtx(w, r)
 			var allHandlersArray []Handler
+			allHandlersArray = append(allHandlersArray, router.mws...)
 			if methodsMatch(r.Method, localProc.method) {
-
-				allHandlersArray = append(router.mws, localProc.handler)
+				allHandlersArray = append(allHandlersArray, localProc.handler)
 			} else {
-				allHandlersArray = append(router.mws, func(Ctx *Ctx) error {
+				fmt.Println("allHandlersArray", allHandlersArray, "len", len(allHandlersArray))
+				allHandlersArray = append(allHandlersArray, func(Ctx *Ctx) error {
 					return fmt.Errorf("Method not allowed")
 				})
 			}

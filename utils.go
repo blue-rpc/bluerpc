@@ -1,6 +1,7 @@
 package bluerpc
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ func findIndex(slice []string, val string) int {
 	return -1
 }
 
-// splitStringOnSlash splits the string at each slash and returns an array of substrings.
+// splitStringOnSlash splits the string at each slash (unless it finds :/, meaning a dynamic route) and returns an array of substrings.
 func splitStringOnSlash(s string) ([]string, error) {
 
 	var result []string
@@ -47,4 +48,31 @@ func splitStringOnSlash(s string) ([]string, error) {
 	}
 
 	return result, nil
+}
+func findDynamicSlugs(s string) (info []dynamicSlugInfo) {
+
+	routes := strings.Split(s, "/")
+
+	//we start at 1 to avoid the first empty element. If the string starts with a slash the first element will be empty
+	for i := 1; i < len(routes); i++ {
+		route := routes[i]
+		fmt.Println("route from find dynamic slugs", route)
+		if route[0] == ':' {
+			info = append(info, dynamicSlugInfo{
+				Position: len(routes) - 1 - i,
+				Name:     route[1:],
+			})
+		}
+
+	}
+	return info
+}
+func sliceStrContains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }

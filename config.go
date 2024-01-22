@@ -36,4 +36,7 @@ type Config struct {
 
 	//disable the printing of that start server message
 	DisableInfoPrinting bool
+
+	//determines the default cors origin for every request that comes in
+	CORS_Origin string
 }

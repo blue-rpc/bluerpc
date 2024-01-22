@@ -13,6 +13,9 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 	if router.procedures != nil {
 		keys := getSortedKeys(router.procedures)
 		for i, slug := range keys {
+			fullPath := currentPath + slug
+			fmt.Println("full path from node to ts", fullPath)
+
 			proc := router.procedures[slug]
 			slug = strings.Replace(slug, "/", "", 1)
 			//this string split handles the case where there this is a nested dynamic route, something like /:id/name
@@ -30,13 +33,13 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 			if proc.method == QUERY {
 				stringBuilder.WriteString("query: async ")
 				query, output := proc.querySchema, proc.outputSchema
-				genTSFuncFromQuery(stringBuilder, query, output, currentPath)
+				genTSFuncFromQuery(stringBuilder, query, output, fullPath, proc.dynamicSlugs)
 			}
 
 			if proc.method == MUTATION {
 				stringBuilder.WriteString("mutation: async ")
 				query, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
-				genTSFuncFromMutation(stringBuilder, query, input, output, currentPath)
+				genTSFuncFromMutation(stringBuilder, query, input, output, fullPath, proc.dynamicSlugs)
 			}
 
 			//if this is a nested route it will be of the form of some nested objects. Thus we need to close each object that we created.
