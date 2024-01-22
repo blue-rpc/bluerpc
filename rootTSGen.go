@@ -34,7 +34,7 @@ func addRpcFunc(builder *strings.Builder, app *App) {
 		host = `const host = "";`
 	}
 
-	text := "// eslint-disable-next-line @typescript-eslint/no-explicit-any\n" +
+	text := "/* eslint-disable @typescript-eslint/no-explicit-any */\n" +
 		"async function rpcCall<T>( apiRoute: string, params?: { query?: any, input?: any } ): Promise<T> {\n" +
 		"  if (params === undefined) {\n" +
 		"    const res = await fetch(apiRoute)\n" +
