@@ -170,15 +170,15 @@ func (r *Router) PrintInfo() {
 
 			queryType := getType(procInfo.querySchema)
 
-			inputsAndOutputs.WriteString(goToTsField(queryType))
+			inputsAndOutputs.WriteString(goToTsObj(queryType))
 		case MUTATION:
 			inputsAndOutputs.WriteString("{")
 			inputsAndOutputs.WriteString("query:")
 			queryType := getType(procInfo.querySchema)
-			inputsAndOutputs.WriteString(goToTsField(queryType))
+			inputsAndOutputs.WriteString(goToTsObj(queryType))
 			inputsAndOutputs.WriteString(",")
 			inputType := getType(procInfo.inputSchema)
-			inputsAndOutputs.WriteString(goToTsField(inputType))
+			inputsAndOutputs.WriteString(goToTsObj(inputType))
 			inputsAndOutputs.WriteString("}")
 
 		}
@@ -186,7 +186,7 @@ func (r *Router) PrintInfo() {
 		inputsAndOutputs.WriteString(")=>")
 
 		outputType := getType(procInfo.outputSchema)
-		inputsAndOutputs.WriteString(goToTsField(outputType))
+		inputsAndOutputs.WriteString(goToTsObj(outputType))
 
 		fmt.Println(pathAndMethod + inputsAndOutputs.String())
 	}

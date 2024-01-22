@@ -18,13 +18,13 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 	if query != nil {
 		qpType := getType(query)
 		stringBuilder.WriteString("query:")
-		stringBuilder.WriteString(goToTsField(qpType, dynamicSlugNames...))
+		stringBuilder.WriteString(goToTsObj(qpType, dynamicSlugNames...))
 	}
 	stringBuilder.WriteString("):Promise<")
 
 	if output != nil {
 		outputType := getType(output)
-		stringBuilder.WriteString(goToTsField(outputType, dynamicSlugNames...))
+		stringBuilder.WriteString(goToTsObj(outputType, dynamicSlugNames...))
 	} else {
 		stringBuilder.WriteString("void")
 	}
@@ -52,14 +52,14 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 		if qpType.Kind() == reflect.Ptr {
 			qpType = qpType.Elem()
 		}
-		stringBuilder.WriteString(fmt.Sprintf("query:%s,", goToTsField(qpType, dynamicSlugNames...)))
+		stringBuilder.WriteString(fmt.Sprintf("query:%s,", goToTsObj(qpType, dynamicSlugNames...)))
 	}
 	if input != nil {
 		inputType := getType(input)
 		if inputType.Kind() == reflect.Ptr {
 			inputType = inputType.Elem()
 		}
-		stringBuilder.WriteString(fmt.Sprintf("input:%s", goToTsField(inputType, dynamicSlugNames...)))
+		stringBuilder.WriteString(fmt.Sprintf("input:%s", goToTsObj(inputType, dynamicSlugNames...)))
 	}
 
 	if isParams {
@@ -72,7 +72,7 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 		if outputType.Kind() == reflect.Ptr {
 			outputType = outputType.Elem()
 		}
-		stringBuilder.WriteString(goToTsField(outputType))
+		stringBuilder.WriteString(goToTsObj(outputType))
 	} else {
 		stringBuilder.WriteString("void")
 	}

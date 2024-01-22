@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func goToTsField(someStruct reflect.Type, dynamicSlugNames ...string) string {
+func goToTsObj(someStruct reflect.Type, dynamicSlugNames ...string) string {
 	stringBuilder := strings.Builder{}
 
 	if someStruct == nil {
@@ -36,12 +36,14 @@ func goToTsField(someStruct reflect.Type, dynamicSlugNames ...string) string {
 		validateTag := field.Tag.Get("validate")
 		hasValidateRequired := strings.Contains(validateTag, "required")
 
-		if !hasRequired && !hasValidateRequired {
+		// If the name is from a dynamic slug then just put Slug at the end
+		//Because dynamic slugs params are always required I put this else if here
+		if len(dynamicSlugNames) > 0 && sliceStrContains(dynamicSlugNames, fieldName) {
+			fieldName += "Slug"
+		} else if !hasRequired && !hasValidateRequired {
 			fieldName += "?"
 		}
-		if dynamicSlugNames != nil && len(dynamicSlugNames) > 0 && sliceStrContains(dynamicSlugNames, fieldName) {
-			fieldName += "Slug"
-		}
+
 		// Append TypeScript field definition to the StringBuilder
 		stringBuilder.WriteString(fmt.Sprintf(" %s: %s", fieldName, goTypeToTSType(fieldType)))
 
@@ -76,7 +78,7 @@ func goTypeToTSType(t reflect.Type) string {
 		return fmt.Sprintf("Record<%s, %s>", keyType, valueType)
 	case reflect.Struct, reflect.Interface:
 		// Handle structs and interfaces specifically if needed
-		return goToTsField(t)
+		return goToTsObj(t)
 	default:
 		return "any"
 	}
