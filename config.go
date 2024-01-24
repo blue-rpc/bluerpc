@@ -1,12 +1,5 @@
 package bluerpc
 
-type RuntimeEnv string
-
-const (
-	DEVELOPMENT RuntimeEnv = "development"
-	PRODUCTION  RuntimeEnv = "production"
-)
-
 type Config struct {
 	//  The path where you would like the generated Typescript to be placed.
 	// Keep in mind that YOU NEED TO PUT a .ts file at the end of the path
@@ -39,4 +32,10 @@ type Config struct {
 
 	//determines the default cors origin for every request that comes in
 	CORS_Origin string
+
+	//The address that your SSL certificate is located at
+	SSLCertPath string
+
+	//The address that your SSL key is located at
+	SSLKey string
 }

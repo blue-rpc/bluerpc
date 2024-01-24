@@ -36,6 +36,7 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	}
 
 	absPath := route.getAbsPath()
+
 	if absPath == "/" {
 		absPath = ""
 	}

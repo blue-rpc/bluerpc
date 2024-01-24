@@ -45,13 +45,25 @@ func (a *App) Listen(port string) error {
 		Handler: a.serveMux,
 	}
 
-	func() {
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server Crashed : %v", err)
+	return func() error {
+		var err error
+		if a.config.SSLCertPath != "" {
+			err = a.server.ListenAndServeTLS(a.config.SSLCertPath, a.config.SSLKey)
+		} else {
+			err = a.server.ListenAndServe()
 		}
+
+		if err != nil {
+			if err == http.ErrServerClosed {
+				// Server closed gracefully, not an error
+				return nil
+			}
+			// Actual error
+			return err
+		}
+		return nil
 	}()
 
-	return nil
 }
 func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMux, int) {
 
@@ -68,73 +80,20 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		router.mws = append(router.mws, prevMws...)
 	}
 	totalRoutes += len(router.procedures)
-	for slug, proc := range router.procedures {
-
-		localSlug := slug
-		localProc := proc
-
-		// if the procedure slug starts with : that means this is a dynamic route. we store the slug inside of the dynamic slug in order for us to store that variable for later use when validating the query params
-		if strings.HasPrefix(localSlug, "/:") {
-			localSlug = "/"
-		}
-		mux.HandleFunc(localSlug, func(w http.ResponseWriter, r *http.Request) {
-			ctx := createCtx(w, r)
-			var allHandlersArray []Handler
-			allHandlersArray = append(allHandlersArray, router.mws...)
-			if methodsMatch(r.Method, localProc.method) {
-				allHandlersArray = append(allHandlersArray, localProc.handler)
-			} else {
-				fmt.Println("allHandlersArray", allHandlersArray, "len", len(allHandlersArray))
-				allHandlersArray = append(allHandlersArray, func(Ctx *Ctx) error {
-					return fmt.Errorf("Method not allowed")
-				})
-			}
-			fullHandler := generateFullHandler(allHandlersArray)
-			fullHandler(ctx)
-
-		})
-	}
 
 	for slug, route := range router.routes {
+		localRoute := route
+		localSlug := slug
 		nextMws := append(prevMws, route.mws...)
-		nestedMux, newTotalRoutes := buildMux(route, nextMws, totalRoutes)
+		nestedMux, newTotalRoutes := buildMux(localRoute, nextMws, totalRoutes)
 		totalRoutes = newTotalRoutes
-		mux.Handle(slug+"/", http.StripPrefix(slug, nestedMux))
+		mux.Handle(slug+"/", http.StripPrefix(localSlug, nestedMux))
 	}
+	setupProcedures(router.getAbsPath(), mux, router.procedures, router.mws)
+
 	return mux, totalRoutes
 }
 
-// Create a chain function where you run each middleware in a recursive matter
-func generateFullHandler(handlers []Handler) Handler {
-
-	if len(handlers) == 0 {
-		return func(ctx *Ctx) error {
-			return ctx.status(404).jSON(Map{"message": "not found"})
-		}
-	}
-	chain := handlers[len(handlers)-1]
-
-	//this loops from the end of the array to the start.
-	for i := len(handlers) - 2; i >= 0; i-- {
-		//Start at the end of the array. For each step
-		currentIndex := i
-		outsideChain := chain
-		chain = func(ctx *Ctx) error {
-			// set the next function to be the previous chain functions combined
-			ctx.nextHandler = outsideChain
-			//run the given handler
-
-			handlers[currentIndex](ctx)
-			// if Next() was not run by the user then run Next() to continue
-			if ctx.nextHandler != nil {
-				return ctx.Next()
-			}
-			return nil
-
-		}
-	}
-	return chain
-}
 func (a *App) Test(req *http.Request, port ...string) (*http.Response, error) {
 	userPort := ":8080"
 	if len(port) > 1 {

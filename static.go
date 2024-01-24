@@ -1,10 +1,7 @@
 package bluerpc
 
 import (
-	"fmt"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 	"time"
 )
@@ -37,34 +34,19 @@ type Static struct {
 }
 
 func createStaticFunction(prefix, root string, config *Static) func(c *Ctx) error {
+	fs := http.FileServer(http.Dir(root))
+
 	return func(ctx *Ctx) error {
-		// Split the path into segments using "/"
-		segments := strings.Split(ctx.httpR.URL.Path, "/")
-		slug := "/"
 
-		if len(segments) >= 2 {
-			slug += segments[len(segments)-1]
-		}
-
-		if config.Download {
-			ctx.Set("Content-Disposition", "attachment")
-		}
-		if config.Next != nil && config.Next(ctx) {
-			return nil
-		}
-		if config.MaxAge > 0 {
-			ctx.httpW.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", config.MaxAge))
-		}
-		if slug == prefix || segments[len(segments)-1] == "" {
-			if _, err := os.Stat(root + config.Index); err != nil {
-				return err
-			}
-
-			http.ServeFile(ctx.httpW, ctx.httpR, root+config.Index)
+		if strings.Contains(ctx.httpR.URL.Path, ".") {
+			// Let the file server handle the request
+			fs.ServeHTTP(ctx.httpW, ctx.httpR)
 		} else {
-			filePath := path.Join(root, path.Base(ctx.httpR.URL.Path))
-			http.ServeFile(ctx.httpW, ctx.httpR, filePath)
+			// For any other requests, serve index.html
+			http.ServeFile(ctx.httpW, ctx.httpR, root+config.Index)
 		}
+
 		return nil
 	}
+
 }

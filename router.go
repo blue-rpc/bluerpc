@@ -18,7 +18,11 @@ type Router struct {
 }
 
 func (router *Router) getAbsPath() string {
+	if router.absPath == "" {
+		return "/"
+	}
 	return router.absPath
+
 }
 
 func (router *Router) addProcedure(slug string, info *ProcedureInfo) {
@@ -86,7 +90,11 @@ func (r *Router) Router(slug string) *Router {
 
 	return newRouter
 }
+
+// prefix is the ROUTE PREFIX
+// root is the ROOT folder
 func (r *Router) Static(prefix, root string, config ...*Static) {
+
 	if root == "" {
 		root = "."
 	}
@@ -94,13 +102,10 @@ func (r *Router) Static(prefix, root string, config ...*Static) {
 	if prefix == "" {
 		prefix = "/"
 	}
+
 	// Prefix always start with a '/' or '*'
 	if prefix[0] != '/' {
 		prefix = "/" + prefix
-	}
-	// Strip trailing slashes from the root path
-	if len(root) > 0 && root[len(root)-1] == '/' {
-		root = root[:len(root)-1]
 	}
 
 	var actualConfig *Static
@@ -120,16 +125,21 @@ func (r *Router) Static(prefix, root string, config ...*Static) {
 	if actualConfig.Index[0] != '/' {
 		actualConfig.Index = "/" + actualConfig.Index
 	}
-	staticRouter := r.Router(prefix)
-	r.procedures[prefix] = &ProcedureInfo{
-		method:      QUERY,
-		validatorFn: r.validatorFn,
-		handler: func(ctx *Ctx) error {
-			http.Redirect(ctx.httpW, ctx.httpR, prefix+"/", http.StatusMovedPermanently)
-			return nil
-		},
+	slugs, _ := splitStringOnSlash(prefix)
+
+	//if the prefix is not "/" then loop through each sub routes until you get to "/", then attach the static method to the last "/"
+	if prefix != "/" {
+		loopRoute := r
+		for i := 0; i < len(slugs); i++ {
+			prevRoute := loopRoute
+			loopRoute = prevRoute.Router(slugs[i])
+		}
+
+		loopRoute.Static("/", root)
+		return
 	}
-	staticRouter.addProcedure("/", &ProcedureInfo{
+	fmt.Println("absolute route where create static function is called", r.getAbsPath())
+	r.addProcedure("/", &ProcedureInfo{
 		method:      QUERY,
 		validatorFn: r.validatorFn,
 		handler:     createStaticFunction(prefix, root, actualConfig),

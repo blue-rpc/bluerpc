@@ -12,15 +12,22 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 
 	if router.procedures != nil {
 		keys := getSortedKeys(router.procedures)
-		for i, slug := range keys {
+
+		for _, slug := range keys {
+
 			fullPath := currentPath + slug
 
 			proc := router.procedures[slug]
-			slug = strings.Replace(slug, "/", "", 1)
+
 			//this string split handles the case where there this is a nested dynamic route, something like /:id/name
-			tsProcPath := strings.Split(slug, "/")
+			tsProcPath, err := splitStringOnSlash(slug)
+
+			if err != nil {
+				panic(err)
+			}
 
 			for _, path := range tsProcPath {
+
 				path = strings.ReplaceAll(path, "/", "")
 				if path[0] == ':' {
 					stringBuilder.WriteString(fmt.Sprintf("[`%s`]:{", path[1:]))
@@ -43,9 +50,8 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 
 			//if this is a nested route it will be of the form of some nested objects. Thus we need to close each object that we created.
 			stringBuilder.WriteString(strings.Repeat("}", len(tsProcPath)))
-			if i != len(keys)-1 {
-				stringBuilder.WriteString(",")
-			}
+
+			stringBuilder.WriteString(",")
 		}
 	}
 

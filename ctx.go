@@ -273,46 +273,59 @@ func (c *Ctx) Cookie(cookie *http.Cookie) {
 type Map map[string]interface{}
 
 func (c *Ctx) jSON(data interface{}) error {
-	var err error
-	var jsonData []byte
-	c.httpW.Header().Set("Content-Type", "application/json")
-
-	v := reflect.ValueOf(data)
-	if v.Kind() != reflect.Struct {
-		jsonData, err = json.Marshal(data)
-		if err != nil {
-			return err
-		}
-		c.httpW.Write(jsonData)
-		return nil
-	}
-	result := make(map[string]interface{})
-	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
-		field := t.Field(i)
-		jsonTag := field.Tag.Get("json")
-		paramNameTag := field.Tag.Get("paramName")
-
-		key := field.Name
-		if jsonTag != "" {
-			key = jsonTag
-		} else if paramNameTag != "" {
-			key = paramNameTag
-		}
-
-		// Ensure the key does not contain any options like omitempty
-		key = strings.Split(key, ",")[0]
-
-		result[key] = v.Field(i).Interface()
-	}
-	jsonData, err = json.Marshal(result)
+	jsonData, err := c.marshalJSON(data)
 	if err != nil {
 		return err
 	}
+
+	c.httpW.Header().Set("Content-Type", "application/json")
 	c.httpW.Write(jsonData)
 	return nil
-
 }
+
+func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
+	v := reflect.ValueOf(data)
+	switch v.Kind() {
+	case reflect.Struct:
+		result := make(map[string]interface{})
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := t.Field(i)
+			key, fieldValue := c.getFieldKeyAndValue(field, v.Field(i))
+
+			if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Map && fieldValue.Type().Key().Kind() == reflect.String) {
+				// Recursively process structs and string-keyed maps
+				subResult, err := c.marshalJSON(fieldValue.Interface())
+				if err != nil {
+					return nil, err
+				}
+				result[key] = subResult
+			} else {
+				result[key] = fieldValue.Interface()
+			}
+		}
+		return json.Marshal(result)
+
+	default:
+		return json.Marshal(data)
+	}
+}
+
+func (c *Ctx) getFieldKeyAndValue(field reflect.StructField, value reflect.Value) (string, reflect.Value) {
+	jsonTag := field.Tag.Get("json")
+	paramNameTag := field.Tag.Get("paramName")
+
+	key := field.Name
+	if jsonTag != "" {
+		key = jsonTag
+	} else if paramNameTag != "" {
+		key = paramNameTag
+	}
+
+	key = strings.Split(key, ",")[0] // Remove options like omitempty
+	return key, value
+}
+
 func (c *Ctx) status(code int) *Ctx {
 	c.httpW.WriteHeader(code)
 	return c
