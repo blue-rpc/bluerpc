@@ -138,7 +138,6 @@ func (r *Router) Static(prefix, root string, config ...*Static) {
 		loopRoute.Static("/", root)
 		return
 	}
-	fmt.Println("absolute route where create static function is called", r.getAbsPath())
 	r.addProcedure("/", &ProcedureInfo{
 		method:      QUERY,
 		validatorFn: r.validatorFn,
