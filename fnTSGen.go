@@ -19,16 +19,13 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 		qpType := getType(query)
 		stringBuilder.WriteString("query:")
 		stringBuilder.WriteString(goToTsObj(qpType, dynamicSlugNames...))
+		stringBuilder.WriteString(",")
+
 	}
+	stringBuilder.WriteString("headers?: HeadersInit,")
 	stringBuilder.WriteString("):Promise<")
 
-	if output != nil {
-		outputType := getType(output)
-		stringBuilder.WriteString(goToTsObj(outputType, dynamicSlugNames...))
-	} else {
-		stringBuilder.WriteString("void")
-	}
-	stringBuilder.WriteString(">=>")
+	generateFnOutputType(stringBuilder, output, dynamicSlugNames...)
 	address = addDynamicToAddress(address, QUERY, dynamicSlugs)
 	generateQueryFnBody(stringBuilder, query != nil, address)
 }
@@ -63,49 +60,54 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 	}
 
 	if isParams {
-		stringBuilder.WriteString("}")
+		stringBuilder.WriteString("},")
 	}
+	stringBuilder.WriteString("headers?: HeadersInit,")
 
 	stringBuilder.WriteString("):Promise<")
-	if output != nil {
-		outputType := getType(output)
-		if outputType.Kind() == reflect.Ptr {
-			outputType = outputType.Elem()
-		}
-		stringBuilder.WriteString(goToTsObj(outputType))
-	} else {
-		stringBuilder.WriteString("void")
-	}
-	stringBuilder.WriteString(">=>")
+	generateFnOutputType(stringBuilder, output, dynamicSlugNames...)
 	address = addDynamicToAddress(address, MUTATION, dynamicSlugs)
 	generateMutationFnBody(stringBuilder, isParams, address)
 }
-func generateQueryFnBody(stringBuilder *strings.Builder, isQuery bool, address string) {
+func generateFnOutputType(stringBuilder *strings.Builder, output any, dynamicSlugNames ...string) {
+	if output != nil {
+		outputType := getType(output)
+		stringBuilder.WriteString(fmt.Sprintf("{body:%s,", goToTsObj(outputType, dynamicSlugNames...)))
+	} else {
+		stringBuilder.WriteString("body:void,")
+	}
+	stringBuilder.WriteString("status: number, headers: Headers")
+	stringBuilder.WriteString("}>=>")
+}
+
+// hasQuery here refers to if there's a query params variable placed
+func generateQueryFnBody(stringBuilder *strings.Builder, hasQuery bool, address string) {
 
 	stringBuilder.WriteString("{return rpcCall(")
 	stringBuilder.WriteString("`" + address + "`")
-	stringBuilder.WriteString(",")
-	if isQuery {
+	stringBuilder.WriteString(",'GET',")
+	if hasQuery {
 		stringBuilder.WriteString("{query}")
 	} else {
 		stringBuilder.WriteString("undefined")
 	}
-
+	stringBuilder.WriteString(",headers")
 	stringBuilder.WriteString(")}")
 
 }
 func generateMutationFnBody(stringBuilder *strings.Builder, isParams bool, address string) {
 	stringBuilder.WriteString("{return rpcCall(")
 	stringBuilder.WriteString("`" + address + "`")
-	stringBuilder.WriteString(",")
+	stringBuilder.WriteString(",'POST',")
 	if isParams {
 		stringBuilder.WriteString("parameters")
 	} else {
 		stringBuilder.WriteString("undefined")
 	}
-
+	stringBuilder.WriteString(",headers")
 	stringBuilder.WriteString(")}")
 }
+
 func getType(t interface{}) reflect.Type {
 	typeOfT := reflect.TypeOf(t)
 

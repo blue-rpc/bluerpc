@@ -1,6 +1,11 @@
 package bluerpc
 
 type Config struct {
+
+	//Authorizer is the default authorization middleware that your app will use. Whenever you make some procedure protected this function will be used to authorize your user to proceed.
+	//You will then be able to call .Auth() on your handler's context and unmarshal whatever you returned first from this function into some variable
+	Authorizer *Authorizer
+
 	//  The path where you would like the generated Typescript to be placed.
 	// Keep in mind that YOU NEED TO PUT a .ts file at the end of the path
 	// Default is ./output.ts
@@ -38,4 +43,13 @@ type Config struct {
 
 	//The address that your SSL key is located at
 	SSLKey string
+}
+type Authorizer struct {
+	Handler AuthHandler
+}
+
+func NewAuth(handler AuthHandler) *Authorizer {
+	return &Authorizer{
+		Handler: handler,
+	}
 }

@@ -35,28 +35,49 @@ func addRpcFunc(builder *strings.Builder, app *App) {
 	}
 
 	text := "/* eslint-disable @typescript-eslint/no-explicit-any */\n" +
-		"async function rpcCall<T>( apiRoute: string, params?: { query?: any, input?: any } ): Promise<T> {\n" +
-		"  if (params === undefined) {\n" +
-		"    const res = await fetch(apiRoute)\n" +
-		"    const json = await res.json()\n" +
-		"    return json as T\n" +
+		"type Method = \"GET\" | \"POST\"\n" +
+		"async function rpcCall<T>(\n" +
+		"  apiRoute: string,\n" +
+		"  method: Method,\n" +
+		"  params?: { query?: any; input?: any },\n" +
+		"  headers?: HeadersInit\n" +
+		"): Promise<{ body: T; status: number; headers: Headers }> {\n" +
+		"  const requestOptions: RequestInit = {\n" +
+		"    method: method,\n" +
+		"    headers: headers,\n" +
+		"  };\n" +
+		"  if (params?.input) {\n" +
+		"    requestOptions.body = JSON.stringify(params.input);\n" +
 		"  }\n" +
 		host + "\n" +
-		"let path = apiRoute;\n" +
-		"if (Object.keys(params.query).length !== 0){\n" +
-		"   path += `?${Object.keys(params.query).map(key => {\n" +
-		"    if (key.includes('Slug')){\n" +
-		" return ''\n" +
-		" }\n" +
-		" return `${key}=${params.query[key]}`\n" +
-		"  }).join('&')}`\n" +
-		"}\n" +
-		"const url = encodeURI(host + path);\n" +
-		"  const res = await fetch(url, {\n" +
-		"    body: !params.input || Object.keys(params.input).length === 0 ? undefined : params.input\n" +
-		"  })\n" +
-		"  const json = await res.json()\n" +
-		"  return json as T\n" +
+		"  let path = apiRoute;\n" +
+		"  if (params?.query && Object.keys(params.query).length !== 0) {\n" +
+		"    path += `?${Object.keys(params.query)\n" +
+		"      .map(key => {\n" +
+		"        if (key.includes('Slug')) {\n" +
+		"          return '';\n" +
+		"        }\n" +
+		"        return `${encodeURIComponent(key)}=${encodeURIComponent(params.query[key])}`;\n" +
+		"      })\n" +
+		"      .join('&')}`;\n" +
+		"  }\n" +
+		"  const url = host + path\n" +
+		"  const res = await fetch(url, requestOptions);\n" +
+		"  const contentType = res.headers.get('content-type');\n" +
+		"  let body: any;\n" +
+		"  if (contentType?.includes('application/json')) {\n" +
+		"    body = await res.json();\n" +
+		"  } else if (contentType?.includes('text')) {\n" +
+		"    body = await res.text();\n" +
+		"  } else {\n" +
+		"    body = await res.blob(); // or arrayBuffer, depending on the expected response\n" +
+		"  }\n" +
+		"\n" +
+		"  return { \n" +
+		"    body: body as T, \n" +
+		"    status: res.status, \n" +
+		"    headers: res.headers \n" +
+		"  };\n" +
 		"}\n"
 	builder.WriteString(text)
 }
