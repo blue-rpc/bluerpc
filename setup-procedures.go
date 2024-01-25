@@ -75,7 +75,6 @@ func attachProcedureToMux(mux *http.ServeMux, slug string, proc *ProcedureInfo, 
 					}
 				}
 				ctx.auth = authRes
-				fmt.Println("ctx auth", ctx.auth)
 				return nil
 			})
 		}

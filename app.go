@@ -88,8 +88,18 @@ func (a *App) Router(relativePath string) *Router {
 	return a.startRoute.Router(relativePath)
 
 }
+
+func (a *App) isAuthorized() bool {
+	return a.startRoute.protected
+}
 func (a *App) getAuthorizer() *Authorizer {
 	return a.config.Authorizer
+}
+
+// it would be very weird for you to make your entire app protected but you can do so by calling this function
+func (a *App) Protected() *App {
+	a.startRoute.Protected()
+	return a
 }
 func (a *App) getAbsPath() string {
 	return "/"

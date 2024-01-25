@@ -20,6 +20,9 @@ type Router struct {
 	protected  bool
 }
 
+func (router *Router) isAuthorized() bool {
+	return router.protected
+}
 func (router *Router) getAuthorizer() *Authorizer {
 	return router.authorizer
 }

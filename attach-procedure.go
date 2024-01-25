@@ -8,6 +8,7 @@ import (
 type Route interface {
 	getAbsPath() string
 	getAuthorizer() *Authorizer
+	isAuthorized() bool
 	addProcedure(string, *ProcedureInfo)
 	getValidatorFn() *validatorFn
 	getApp() *App
@@ -16,6 +17,9 @@ type Route interface {
 
 func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 
+	if route.isAuthorized() {
+		proc = proc.Protected()
+	}
 	if proc.authorizer == nil {
 		proc.authorizer = route.getAuthorizer()
 	}
