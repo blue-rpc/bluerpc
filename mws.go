@@ -1,5 +1,9 @@
 package bluerpc
 
+type DefaultResError struct {
+	Message string `json:"message"`
+}
+
 // Simple middleware that always returns json
 func DefaultErrorMiddleware(ctx *Ctx) error {
 	err := ctx.Next()
