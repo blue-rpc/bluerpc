@@ -49,13 +49,39 @@ func attachProcedureToMux(mux *http.ServeMux, slug string, proc *ProcedureInfo, 
 		ctx := createCtx(w, r)
 		var allHandlersArray []Handler
 		allHandlersArray = append(allHandlersArray, mws...)
-		if methodsMatch(r.Method, proc.method) {
-			allHandlersArray = append(allHandlersArray, proc.handler)
-		} else {
+		if !methodsMatch(r.Method, proc.method) {
 			allHandlersArray = append(allHandlersArray, func(Ctx *Ctx) error {
-				return fmt.Errorf("Method not allowed")
+				return &Error{
+					Code:    405,
+					Message: "Method not allowed",
+				}
+			})
+			fullHandler := generateFullHandler(allHandlersArray)
+			fullHandler(ctx)
+			return
+		}
+
+		if proc.protected {
+			if proc.authorizer == nil || proc.authorizer.Handler == nil {
+				panic("You have set a procedure to be protected and yet you did not provide any authorization functions to either its router parents or the app.")
+			}
+			allHandlersArray = append(allHandlersArray, func(Ctx *Ctx) error {
+				authRes, err := proc.authorizer.Handler(ctx)
+
+				if err != nil {
+					return &Error{
+						Code:    401,
+						Message: err.Error(),
+					}
+				}
+				ctx.auth = authRes
+				fmt.Println("ctx auth", ctx.auth)
+				return nil
 			})
 		}
+
+		allHandlersArray = append(allHandlersArray, proc.handler)
+
 		fullHandler := generateFullHandler(allHandlersArray)
 		fullHandler(ctx)
 
@@ -82,7 +108,11 @@ func generateFullHandler(handlers []Handler) Handler {
 			ctx.nextHandler = outsideChain
 			//run the given handler
 
-			handlers[currentIndex](ctx)
+			err := handlers[currentIndex](ctx)
+
+			if err != nil {
+				return err
+			}
 			// if Next() was not run by the user then run Next() to continue
 			if ctx.nextHandler != nil {
 				return ctx.Next()

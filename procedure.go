@@ -24,6 +24,9 @@ type Procedure[query any, input any, output any] struct {
 	acceptedContentType []string
 	queryHandler        Query[query, output]
 	mutationHandler     Mutation[query, input, output]
+
+	authorizer *Authorizer
+	protected  bool
 }
 
 // position refers to the position of the slug FROM THE END
@@ -42,6 +45,8 @@ type ProcedureInfo struct {
 
 	dynamicSlugs []dynamicSlugInfo
 	handler      func(ctx *Ctx) error
+	protected    bool
+	authorizer   *Authorizer
 }
 
 // Creates a new query procedure that can be attached to groups / app root.
@@ -118,4 +123,13 @@ func checkIfQueryStruct[query any](arg query) {
 	} else if queryT.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("generic argument Query must be a struct, got %s", queryT.Kind()))
 	}
+}
+
+func (p *Procedure[query, input, output]) Protected() *Procedure[query, input, output] {
+	p.protected = true
+	return p
+}
+func (p *Procedure[query, input, output]) Authorizer(a *Authorizer) *Procedure[query, input, output] {
+	p.authorizer = a
+	return p
 }

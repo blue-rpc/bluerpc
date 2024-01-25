@@ -15,13 +15,28 @@ type Router struct {
 	absPath     string
 	mws         []Handler
 	validatorFn *validatorFn
+
+	authorizer *Authorizer
+	protected  bool
 }
 
+func (router *Router) getAuthorizer() *Authorizer {
+	return router.authorizer
+}
 func (router *Router) getAbsPath() string {
 	if router.absPath == "" {
 		return "/"
 	}
 	return router.absPath
+
+}
+func (router *Router) Protected() *Router {
+	router.protected = true
+	return router
+}
+func (router *Router) Authorizer(a *Authorizer) *Router {
+	router.authorizer = a
+	return router
 
 }
 
@@ -82,6 +97,7 @@ func (r *Router) Router(slug string) *Router {
 		mws:         []Handler{},
 		validatorFn: r.validatorFn,
 		app:         r.app,
+		authorizer:  r.authorizer,
 	}
 	if strings.ContainsRune(slug, ':') {
 		panic("You are not allowed to create dynamic routes. Read the docs from here :")

@@ -35,7 +35,9 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 					stringBuilder.WriteString(fmt.Sprintf("%s:{", path))
 				}
 			}
-
+			if proc.protected {
+				stringBuilder.WriteString("_")
+			}
 			if proc.method == QUERY {
 				stringBuilder.WriteString("query: async ")
 				query, output := proc.querySchema, proc.outputSchema

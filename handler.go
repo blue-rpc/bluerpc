@@ -4,7 +4,8 @@ import (
 	"net/http"
 )
 
-type Handler = func(Ctx *Ctx) error
+type Handler = func(ctx *Ctx) error
+type AuthHandler func(ctx *Ctx) (any, error)
 
 type Res[T any] struct {
 	Status int

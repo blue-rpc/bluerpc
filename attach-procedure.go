@@ -7,6 +7,7 @@ import (
 
 type Route interface {
 	getAbsPath() string
+	getAuthorizer() *Authorizer
 	addProcedure(string, *ProcedureInfo)
 	getValidatorFn() *validatorFn
 	getApp() *App
@@ -14,6 +15,10 @@ type Route interface {
 }
 
 func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
+
+	if proc.authorizer == nil {
+		proc.authorizer = route.getAuthorizer()
+	}
 
 	//if the user attached a nested route, something like /users/images/info, this part of the function will split the slug into its corresponding parts, will create the needed nested routes and then will attach the procedure to the last created route
 	// in the case of /users/images/info it will create a /users route, in /users it will create /images and it will attach the procedure on images at /info
@@ -91,6 +96,8 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 		querySchema:  new(query),
 		inputSchema:  new(input),
 		outputSchema: new(output),
+		protected:    proc.protected,
+		authorizer:   proc.authorizer,
 	})
 	app := route.getApp()
 
@@ -218,6 +225,9 @@ func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 
 func checkContentTypeValidity(contentType string, validContentTypes []string) error {
 
+	if contentType == "" {
+		return nil
+	}
 	fullContentTypes := ""
 
 	for i, validType := range validContentTypes {

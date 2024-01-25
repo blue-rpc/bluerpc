@@ -34,8 +34,9 @@ func New(blueConfig ...*Config) *App {
 		corsMw := createDefaultCorsOrigin(cfg.CORS_Origin)
 		mws = append(mws, corsMw)
 	}
-
 	mws = append(mws, cfg.ErrorMiddleware)
+
+	fmt.Println("mws from new", mws)
 	startRouter := &Router{
 		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
@@ -44,6 +45,7 @@ func New(blueConfig ...*Config) *App {
 		absPath:     "",
 		mws:         mws,
 		app:         &newApp,
+		authorizer:  cfg.Authorizer,
 	}
 
 	newApp.startRoute = startRouter
@@ -87,7 +89,9 @@ func (a *App) Router(relativePath string) *Router {
 	return a.startRoute.Router(relativePath)
 
 }
-
+func (a *App) getAuthorizer() *Authorizer {
+	return a.config.Authorizer
+}
 func (a *App) getAbsPath() string {
 	return "/"
 }
