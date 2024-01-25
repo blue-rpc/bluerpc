@@ -125,6 +125,7 @@ func checkIfQueryStruct[query any](arg query) {
 	}
 }
 
+// Turns the procedure into a protected procedure, meaning your authorization handler will run before this runs
 func (p *Procedure[query, input, output]) Protected() *Procedure[query, input, output] {
 	p.protected = true
 	return p
