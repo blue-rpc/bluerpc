@@ -203,6 +203,7 @@ func (r *Router) PrintInfo() {
 			inputsAndOutputs.WriteString(goToTsObj(queryType))
 			inputsAndOutputs.WriteString(",")
 			inputType := getType(procInfo.inputSchema)
+			inputsAndOutputs.WriteString("input:")
 			inputsAndOutputs.WriteString(goToTsObj(inputType))
 			inputsAndOutputs.WriteString("}")
 

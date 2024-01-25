@@ -61,10 +61,7 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf(DefaultColors.Red+"Could not read the body", err.Error())
 	}
-	fmt.Println("body", string(body))
-	type DefaultResError struct {
-		Message string `json:"message"`
-	}
+
 	var resError DefaultResError
 	if err := json.Unmarshal(body, &resError); err != nil {
 		t.Fatalf(DefaultColors.Red+"Failed to unmarshal response: %v", err)

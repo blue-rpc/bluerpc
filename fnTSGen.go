@@ -40,6 +40,8 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 	}
 
 	isParams := query != nil || input != nil
+
+	fmt.Println("is params from fnTsGen", isParams, "query", query, "input", input)
 	if isParams {
 		stringBuilder.WriteString("parameters : {")
 	}
@@ -49,6 +51,7 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 		if qpType.Kind() == reflect.Ptr {
 			qpType = qpType.Elem()
 		}
+
 		stringBuilder.WriteString(fmt.Sprintf("query:%s,", goToTsObj(qpType, dynamicSlugNames...)))
 	}
 	if input != nil {

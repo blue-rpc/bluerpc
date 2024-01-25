@@ -36,7 +36,6 @@ func New(blueConfig ...*Config) *App {
 	}
 	mws = append(mws, cfg.ErrorMiddleware)
 
-	fmt.Println("mws from new", mws)
 	startRouter := &Router{
 		routes:      map[string]*Router{},
 		procedures:  map[string]*ProcedureInfo{},
