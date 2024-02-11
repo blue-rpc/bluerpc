@@ -44,10 +44,13 @@ type Config struct {
 	//The address that your SSL key is located at
 	SSLKey string
 }
+
+// Struct that handles all of the settings related to authorizing for routes and procedures
 type Authorizer struct {
 	Handler AuthHandler
 }
 
+// Creates a new authorizer struct with the defaults set
 func NewAuth(handler AuthHandler) *Authorizer {
 	return &Authorizer{
 		Handler: handler,

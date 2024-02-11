@@ -89,8 +89,9 @@ func NewQuery[query any, output any](app *App, queryFn Query[query, output]) *Pr
 }
 
 // Changes the validator function for this particular procedure
-func (p *Procedure[query, input, output]) Validator(fn validatorFn) {
+func (p *Procedure[query, input, output]) Validator(fn validatorFn) *Procedure[query, input, output] {
 	p.validatorFn = &fn
+	return p
 }
 
 // determines which content type should a request have in order for it to be valid.

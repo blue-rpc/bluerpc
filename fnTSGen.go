@@ -39,14 +39,13 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 		dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
 	}
 
-	isParams := query != nil || input != nil
+	isParams := !isInterpretedAsEmpty(query) || !isInterpretedAsEmpty(input)
 
-	fmt.Println("is params from fnTsGen", isParams, "query", query, "input", input)
 	if isParams {
 		stringBuilder.WriteString("parameters : {")
 	}
 
-	if query != nil {
+	if !isInterpretedAsEmpty(query) {
 		qpType := getType(query)
 		if qpType.Kind() == reflect.Ptr {
 			qpType = qpType.Elem()
@@ -54,7 +53,7 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 
 		stringBuilder.WriteString(fmt.Sprintf("query:%s,", goToTsObj(qpType, dynamicSlugNames...)))
 	}
-	if input != nil {
+	if !isInterpretedAsEmpty(input) {
 		inputType := getType(input)
 		if inputType.Kind() == reflect.Ptr {
 			inputType = inputType.Elem()
@@ -145,4 +144,31 @@ func addDynamicToAddress(s string, method Method, slugInfos []dynamicSlugInfo) s
 		splitStr[len(splitStr)-1-dsi.Position] = fmt.Sprintf(`${%s}`, dynTsPart)
 	}
 	return strings.Join(splitStr, "/")
+}
+
+func isInterpretedAsEmpty(v interface{}) bool {
+	// First, check if v is nil. This covers the case where v is nil itself.
+	if v == nil {
+		return true
+	}
+
+	// Use reflection to examine the type of v.
+	val := reflect.ValueOf(v)
+	typ := val.Type()
+
+	// Check if v is a pointer.
+	if typ.Kind() == reflect.Ptr {
+		// Check if it's a nil pointer.
+		if val.IsNil() {
+			return true
+		}
+
+		// Check if the element type is an interface.
+		elemType := val.Elem().Type()
+		isPointerToInterface := elemType.Kind() == reflect.Interface
+		return isPointerToInterface
+	}
+
+	// v is not a pointer and not nil.
+	return false
 }

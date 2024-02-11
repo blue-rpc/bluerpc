@@ -40,7 +40,6 @@ func (router *Router) Protected() *Router {
 func (router *Router) Authorizer(a *Authorizer) *Router {
 	router.authorizer = a
 	return router
-
 }
 
 func (router *Router) addProcedure(slug string, info *ProcedureInfo) {
