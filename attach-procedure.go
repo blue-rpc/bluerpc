@@ -3,6 +3,7 @@ package bluerpc
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Route interface {
@@ -229,13 +230,13 @@ func sendRes[output any](ctx *Ctx, res *Res[output]) error {
 
 func checkContentTypeValidity(contentType string, validContentTypes []string) error {
 
-	if contentType == "" {
+	if contentType == "" || len(validContentTypes) == 0 {
 		return nil
 	}
 	fullContentTypes := ""
 
 	for i, validType := range validContentTypes {
-		if validType == contentType {
+		if strings.Contains(contentType, validType) {
 			return nil
 		}
 		fullContentTypes += validType
@@ -245,5 +246,9 @@ func checkContentTypeValidity(contentType string, validContentTypes []string) er
 
 	}
 
-	return fmt.Errorf("invalid content type. server only accepts %s", fullContentTypes)
+	return &Error{
+		Code:    400,
+		Message: fmt.Sprintf("invalid content type. server only accepts %s", fullContentTypes),
+	}
+
 }

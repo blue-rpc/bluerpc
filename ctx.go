@@ -222,9 +222,12 @@ func (c *Ctx) bodyParser(targetStruct interface{}) error {
 	}
 
 	switch {
-	case strings.Contains(contentType, "application/json"):
+	case strings.Contains(contentType, TextPlain):
+		// THIS MIGHT BE AN ISSUE LATER OR LEFT TO DO. NOW IT ASSUMES TEXT/PLAIN IS JUST JSON
 		return c.decodeJSON(targetStruct)
-	case strings.Contains(contentType, "application/x-www-form-urlencoded"):
+	case strings.Contains(contentType, ApplicationJSON):
+		return c.decodeJSON(targetStruct)
+	case strings.Contains(contentType, ApplicationForm):
 		return c.decodeForm(targetStruct)
 	//TODO
 	default:

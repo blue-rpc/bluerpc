@@ -62,7 +62,7 @@ func NewMutation[query any, input any, output any](app *App, mutation Mutation[q
 		validatorFn:         &app.config.ValidatorFn,
 		method:              MUTATION,
 		mutationHandler:     mutation,
-		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
+		acceptedContentType: []string{TextPlain, ApplicationJSON, ApplicationForm},
 		hasQuery:            !isEmptyInterface[query](),
 		hasInput:            !isEmptyInterface[input](),
 		hasOutput:           !isEmptyInterface[output](),
@@ -82,7 +82,7 @@ func NewQuery[query any, output any](app *App, queryFn Query[query, output]) *Pr
 		validatorFn:         &app.config.ValidatorFn,
 		method:              QUERY,
 		queryHandler:        queryFn,
-		acceptedContentType: []string{ApplicationJSON, ApplicationForm},
+		acceptedContentType: []string{TextPlain, ApplicationJSON, ApplicationForm},
 		hasQuery:            !isEmptyInterface[query](),
 		hasOutput:           !isEmptyInterface[output](),
 	}
