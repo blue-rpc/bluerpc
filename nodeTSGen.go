@@ -30,10 +30,10 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 
 				path = strings.ReplaceAll(path, "/", "")
 				if path[0] == ':' {
-					stringBuilder.WriteString(fmt.Sprintf("[`%s`]:{", path[1:]))
-				} else {
-					stringBuilder.WriteString(fmt.Sprintf("%s:{", path))
+					path = path[1:]
 				}
+				stringBuilder.WriteString(fmt.Sprintf("[`%s`]:{", path))
+
 			}
 			if proc.protected {
 				stringBuilder.WriteString("_")
@@ -62,10 +62,9 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 		for i, path := range keys {
 			tsObjectPath := strings.ReplaceAll(path, "/", "")
 			if tsObjectPath[0] == ':' {
-				stringBuilder.WriteString(fmt.Sprintf("[`%s`]:", tsObjectPath[1:]))
-			} else {
-				stringBuilder.WriteString(fmt.Sprintf("%s:", tsObjectPath))
+				tsObjectPath = tsObjectPath[1:]
 			}
+			stringBuilder.WriteString(fmt.Sprintf("[`%s`]:", tsObjectPath))
 
 			nodeToTS(stringBuilder, router.routes[path], i == len(keys)-1, currentPath+path)
 		}
