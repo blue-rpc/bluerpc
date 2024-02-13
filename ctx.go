@@ -287,7 +287,16 @@ func (c *Ctx) decodeForm(targetStruct interface{}) error {
 	return schema.NewDecoder().Decode(targetStruct, c.httpR.Form)
 }
 
-func (c *Ctx) Cookie(cookie *http.Cookie) {
+// returns an array of all of the cookies on the REQUEST object
+func (c *Ctx) GetCookies() []*http.Cookie {
+	return c.httpR.Cookies()
+}
+
+// returns a specific cookie given the string
+func (c *Ctx) GetCookie(key string) (*http.Cookie, error) {
+	return c.httpR.Cookie(key)
+}
+func (c *Ctx) SetCookie(cookie *http.Cookie) {
 	http.SetCookie(c.httpW, cookie)
 }
 
