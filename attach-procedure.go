@@ -199,7 +199,7 @@ func setHeaders(ctx *Ctx, header *Header) error {
 
 	for _, cookie := range header.Cookies {
 		if cookie != nil {
-			ctx.Cookie(cookie)
+			ctx.SetCookie(cookie)
 		}
 	}
 	return nil
