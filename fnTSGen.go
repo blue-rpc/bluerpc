@@ -15,7 +15,7 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 		dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
 	}
 
-	if query != nil {
+	if !isInterpretedAsEmpty(query) {
 		qpType := getType(query)
 		stringBuilder.WriteString("query:")
 		stringBuilder.WriteString(goToTsObj(qpType, dynamicSlugNames...))
@@ -74,7 +74,13 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 func generateFnOutputType(stringBuilder *strings.Builder, output any, dynamicSlugNames ...string) {
 	if output != nil {
 		outputType := getType(output)
-		stringBuilder.WriteString(fmt.Sprintf("{body:%s,", goToTsObj(outputType, dynamicSlugNames...)))
+		var tsType string
+		if outputType.Kind() == reflect.Struct {
+			tsType = goToTsObj(outputType, dynamicSlugNames...)
+		} else {
+			tsType = goTypeToTSType(outputType)
+		}
+		stringBuilder.WriteString(fmt.Sprintf("{body:%s,", tsType))
 	} else {
 		stringBuilder.WriteString("body:void,")
 	}

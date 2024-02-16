@@ -2,6 +2,7 @@ package bluerpc
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -15,8 +16,11 @@ func goToTsObj(someStruct reflect.Type, dynamicSlugNames ...string) string {
 	}
 	if someStruct.Kind() == reflect.Ptr {
 		someStruct = someStruct.Elem()
-	} else if someStruct.Kind() != reflect.Struct {
+	}
+	if someStruct.Kind() == reflect.Interface {
 		return "any"
+	} else if someStruct.Kind() != reflect.Struct {
+		log.Panicf(" i though this was supposed to be a struct, it is %s", someStruct.Kind())
 	}
 
 	stringBuilder.WriteString("{")
@@ -55,6 +59,9 @@ func goToTsObj(someStruct reflect.Type, dynamicSlugNames ...string) string {
 }
 
 func goTypeToTSType(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 	// Check if the type is a named type and if its Kind is one of the basic types
 	if t.Name() != "" && t.Kind() != reflect.Struct && t.Kind() != reflect.Interface {
 		switch t.Kind() {
@@ -69,6 +76,7 @@ func goTypeToTSType(t reflect.Type) string {
 	}
 
 	switch t.Kind() {
+
 	case reflect.Slice, reflect.Array:
 		elemType := goTypeToTSType(t.Elem())
 		return fmt.Sprintf("Array<%s>", elemType)
@@ -76,9 +84,10 @@ func goTypeToTSType(t reflect.Type) string {
 		keyType := goTypeToTSType(t.Key())
 		valueType := goTypeToTSType(t.Elem())
 		return fmt.Sprintf("Record<%s, %s>", keyType, valueType)
-	case reflect.Struct, reflect.Interface:
-		// Handle structs and interfaces specifically if needed
+	case reflect.Struct:
 		return goToTsObj(t)
+	case reflect.Interface:
+		return "any"
 	default:
 		return "any"
 	}

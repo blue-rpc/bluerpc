@@ -214,7 +214,7 @@ func (r *Router) PrintInfo() {
 		inputsAndOutputs.WriteString(")=>")
 
 		outputType := getType(procInfo.outputSchema)
-		inputsAndOutputs.WriteString(goToTsObj(outputType))
+		inputsAndOutputs.WriteString(goTypeToTSType(outputType))
 
 		fmt.Println(pathAndMethod + inputsAndOutputs.String())
 	}
