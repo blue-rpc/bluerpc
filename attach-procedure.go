@@ -167,9 +167,9 @@ func validateOutput[query any, input any, output any](proc *Procedure[query, inp
 	if !proc.hasOutput || validatorFn == nil {
 		return nil
 	}
-
 	if err := validatorFn(res.Body); err != nil {
-		fmt.Printf(DefaultColors.Red+"INVALID OUTPUT ERROR at: %s, method : %s , error : %s \n", path, method, err.Error())
+		fmt.Println("error", err.Error())
+		fmt.Printf(DefaultColors.Red+"INVALID OUTPUT ERROR at: %s, method : %s , error : %s \n", path, method, err.Error()+DefaultColors.Reset)
 		return &Error{
 			Code:    500,
 			Message: "A server error has occurred. Please try again later",

@@ -323,19 +323,52 @@ func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
 			field := t.Field(i)
 			key, fieldValue := c.getFieldKeyAndValue(field, v.Field(i))
 
-			if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Map && fieldValue.Type().Key().Kind() == reflect.String) {
-				// Recursively process structs and string-keyed maps
+			switch fieldValue.Kind() {
+			case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:
+				if fieldValue.Kind() == reflect.Map && fieldValue.Type().Key().Kind() != reflect.String {
+					result[key] = fieldValue.Interface()
+					continue
+				}
+				// Recursively process nested structs, slices, arrays, and string-keyed maps
 				subResult, err := c.marshalJSON(fieldValue.Interface())
 				if err != nil {
 					return nil, err
 				}
-				result[key] = subResult
-			} else {
+				// For slices and arrays, unmarshal the result to maintain type
+				if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Array {
+					var sliceResult []interface{}
+					if err := json.Unmarshal(subResult, &sliceResult); err != nil {
+						return nil, err
+					}
+					result[key] = sliceResult
+				} else {
+					var mapOrStructResult interface{}
+					if err := json.Unmarshal(subResult, &mapOrStructResult); err != nil {
+						return nil, err
+					}
+					result[key] = mapOrStructResult
+				}
+			default:
 				result[key] = fieldValue.Interface()
 			}
 		}
 		return json.Marshal(result)
-
+	case reflect.Slice, reflect.Array:
+		// Handle slices and arrays at the top level
+		sliceResult := make([]interface{}, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			elem := v.Index(i)
+			processedElem, err := c.marshalJSON(elem.Interface())
+			if err != nil {
+				return nil, err
+			}
+			var intermediate interface{}
+			if err := json.Unmarshal(processedElem, &intermediate); err != nil {
+				return nil, err
+			}
+			sliceResult[i] = intermediate
+		}
+		return json.Marshal(sliceResult)
 	default:
 		return json.Marshal(data)
 	}
