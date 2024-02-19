@@ -315,6 +315,9 @@ func (c *Ctx) jSON(data interface{}) error {
 
 func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
 	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
 	switch v.Kind() {
 	case reflect.Struct:
 		result := make(map[string]interface{})
@@ -384,7 +387,9 @@ func (c *Ctx) getFieldKeyAndValue(field reflect.StructField, value reflect.Value
 	} else if paramNameTag != "" {
 		key = paramNameTag
 	}
-
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
 	key = strings.Split(key, ",")[0] // Remove options like omitempty
 	return key, value
 }
