@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,9 @@ func (a *App) Listen(port string) error {
 		a.serveMux = &http.ServeMux{}
 		a.serveMux.Handle("/", nestedMux)
 
+		if a.config.EnablePProf {
+			attachPprofRoutes(a.serveMux)
+		}
 		if !a.config.DisableInfoPrinting {
 			var serverUrl string
 			if a.config.ServerURL == "" {
@@ -94,6 +98,20 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 	return mux, totalRoutes
 }
 
+// AttachPprofRoutes adds the pprof routes to the provided mux.
+func attachPprofRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	// Register other pprof endpoints by specifying the profile name as the parameter to pprof.Handler.
+	mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	mux.Handle("/debug/pprof/block", pprof.Handler("block"))
+	// You can add more handlers here based on the pprof documentation.
+}
 func (a *App) Test(req *http.Request, port ...string) (*http.Response, error) {
 	userPort := ":8080"
 	if len(port) > 1 {

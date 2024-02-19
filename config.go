@@ -43,6 +43,10 @@ type Config struct {
 
 	//The address that your SSL key is located at
 	SSLKey string
+
+	// Puts all of the needed Pprof routes in. Read more about pprof here
+	// https://pkg.go.dev/net/http/pprof
+	EnablePProf bool
 }
 
 // Struct that handles all of the settings related to authorizing for routes and procedures
