@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"reflect"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/schema"
@@ -124,6 +123,10 @@ func (c *Ctx) Attachment(filename ...string) {
 //
 // The first parameter must be a pointer to a struct.
 func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
+	// Check if targetStruct is a pointer
+	if reflect.ValueOf(targetStruct).Kind() != reflect.Ptr {
+		return fmt.Errorf("targetStruct must be a pointer")
+	}
 	structVal := reflect.ValueOf(targetStruct).Elem()
 	structType := structVal.Type()
 	query := c.httpR.URL.Query()
@@ -157,6 +160,7 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 		if !field.CanSet() {
 			continue
 		}
+		fmt.Println("i", i)
 
 		var queryValues []string
 
@@ -168,51 +172,28 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 
 			queryValues = append(queryValues, urlParts[len(urlParts)-posOfSlugInUrl-1])
 		} else {
-			vals, found := query[queryKey]
+			fmt.Println("query", query)
+			values, found := query[queryKey]
 			if !found {
 				continue
 			}
-			queryValues = append(queryValues, vals...)
+			queryValues = append(queryValues, values...)
 
 		}
+		queryValuesAny := make([]any, len(queryValues))
+		for i, v := range queryValues {
+			queryValuesAny[i] = v
+		}
 
-		switch field.Kind() {
-		case reflect.Slice:
-			elemKind := field.Type().Elem().Kind()
-			if elemKind == reflect.Int {
-				var intSlice []int
-				for _, v := range queryValues {
-					if intValue, err := strconv.Atoi(v); err == nil {
-						intSlice = append(intSlice, intValue)
-					} else {
-						return fmt.Errorf("invalid integer value '%s' for query parameter '%s'", v, queryKey)
-					}
-				}
-				field.Set(reflect.ValueOf(intSlice))
-			}
-			// Add cases here for slices of other types if necessary
-		case reflect.String:
-			field.SetString(queryValues[0])
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			if intVal, err := strconv.ParseInt(queryValues[0], 10, 64); err == nil {
-				field.SetInt(intVal)
-			} else {
-				return fmt.Errorf("invalid integer value '%s' for query parameter '%s'", queryValues[0], queryKey)
-			}
-		case reflect.Bool:
-			if boolVal, err := strconv.ParseBool(queryValues[0]); err == nil {
-				field.SetBool(boolVal)
-			} else {
-				return fmt.Errorf("invalid boolean value '%s' for query parameter '%s'", queryValues[0], path)
-			}
-		default:
-			return fmt.Errorf("unsupported type '%s' for query parameter '%s'", field.Kind(), path)
-
+		if err := fillInField(field, queryKey, queryValuesAny...); err != nil {
+			fmt.Println("err from fill in field", err)
+			return err
 		}
 	}
-
 	return nil
 }
+
+// returns the byte size depending on the number kind. panics if the passed variable is not a kind
 
 func (c *Ctx) bodyParser(targetStruct interface{}) error {
 	contentType := c.httpR.Header.Get("Content-Type")
@@ -268,12 +249,10 @@ func (c *Ctx) decodeJSON(targetStruct interface{}) error {
 			fieldValue := reflect.ValueOf(jsonValue)
 			if field.Type() == fieldValue.Type() {
 				field.Set(fieldValue)
-			} else {
-				// Convert and set value if types are different
-				// This part might need more robust error handling and type conversion
-				convertedValue := reflect.ValueOf(jsonValue).Convert(field.Type())
-				field.Set(convertedValue)
+				return nil
 			}
+			anyArray := []any{jsonValue}
+			fillInField(field, keyName, anyArray...)
 		}
 	}
 

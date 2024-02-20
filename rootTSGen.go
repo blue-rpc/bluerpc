@@ -54,7 +54,7 @@ func addRpcFunc(builder *strings.Builder, app *App) {
 		"  if (params?.query && Object.keys(params.query).length !== 0) {\n" +
 		"    path += `?${Object.keys(params.query)\n" +
 		"      .map(key => {\n" +
-		"        if (key.includes('Slug')) {\n" +
+		"        if (key.includes('Slug')|| !params.query[key]) {\n" +
 		"          return '';\n" +
 		"        }\n" +
 		"        return `${encodeURIComponent(key)}=${encodeURIComponent(params.query[key])}`;\n" +

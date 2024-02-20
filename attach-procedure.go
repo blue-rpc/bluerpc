@@ -125,7 +125,6 @@ func validateQuery[query any, input any, output any](c *Ctx, proc *Procedure[que
 		return *queryParamInstance, nil
 	}
 	if err := validatorFn(queryParamInstance); err != nil {
-
 		return *queryParamInstance, &Error{
 			Code:    http.StatusBadRequest,
 			Message: err.Error(),
