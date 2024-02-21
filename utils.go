@@ -51,79 +51,98 @@ func splitStringOnSlash(s string) ([]string, error) {
 
 	return result, nil
 }
-func fillInField(field reflect.Value, key string, values ...any) error {
-
-	fieldValue := reflect.ValueOf(values[0])
-	if field.Type() == fieldValue.Type() {
-		field.Set(fieldValue)
+func setField(field reflect.Value, values []string) error {
+	if len(values) == 0 {
 		return nil
 	}
-	fieldValueForcedToString := values[0].(string)
-
-	fieldKind := field.Kind()
-	switch fieldKind {
-	case reflect.Slice:
-		elemKind := field.Type().Elem().Kind()
-		//this is disgusting but I have no clue how to go around the fact that I need to repeat the same thing multiple times
-		// slice := reflect.MakeSlice(reflect.SliceOf(field.Type()), 0, len(values))
-
-		if elemKind == reflect.Int {
-			intSlice := make([]int, 0, len(values))
-
-			for _, v := range values {
-				intValue, err := strconv.Atoi(v.(string))
-				if err != nil {
-					return fmt.Errorf("invalid integer value '%s' for query parameter '%s'", v, key)
-				}
-				intSlice = append(intSlice, intValue)
+	kind := field.Kind()
+	switch field.Kind() {
+	case reflect.Slice, reflect.Array:
+		elemType := field.Type().Elem()
+		collection := reflect.MakeSlice(reflect.SliceOf(elemType), len(values), len(values))
+		for i, value := range values {
+			elem := reflect.New(elemType).Elem()
+			if err := setField(elem, []string{value}); err != nil {
+				return fmt.Errorf("failed to set slice/array element: %v", err)
 			}
-			field.Set(reflect.ValueOf(intSlice))
+			collection.Index(i).Set(elem)
+		}
+		if field.Kind() == reflect.Slice {
+			field.Set(collection)
+		} else if field.Kind() == reflect.Array && field.Len() == collection.Len() {
+			reflect.Copy(field, collection)
+		}
+	case reflect.Map:
+		// For simplicity, assuming string keys and handling only string values here
+		mapType := field.Type()
+		keyType := mapType.Key()
+		elemType := mapType.Elem()
+		newMap := reflect.MakeMap(mapType)
+		for _, value := range values {
+			key := reflect.ValueOf(value) // Simplified: using value as key
+			elem := reflect.New(elemType).Elem()
+			if err := setField(elem, []string{value}); err != nil {
+				return fmt.Errorf("failed to set map element: %v", err)
+			}
+			newMap.SetMapIndex(key.Convert(keyType), elem)
+		}
+		field.Set(newMap)
+	case reflect.Struct:
+		// For simplicity, assigning values to fields by their index
+		for i := 0; i < field.NumField(); i++ {
+			if len(values) > i {
+				if err := setField(field.Field(i), []string{values[i]}); err != nil {
+					return fmt.Errorf("failed to set struct field: %v", err)
+				}
+			}
 		}
 	case reflect.String:
-		field.SetString(fieldValueForcedToString)
+		field.SetString(values[0])
+		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		bitSize, err := getByteSize(fieldKind)
+		byteSize, err := getByteSize(kind)
 		if err != nil {
 			return err
 		}
-		intVal, err := strconv.ParseInt(fieldValueForcedToString, 10, bitSize)
-		if err != nil {
-			return fmt.Errorf("invalid integer value '%s' for query parameter '%s'", fieldValueForcedToString, key)
-		}
-		fmt.Println("setting int val", intVal)
-		field.SetInt(intVal)
-	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		bitSize, err := getByteSize(fieldKind)
+		intValue, err := strconv.ParseInt(values[0], 10, byteSize)
 		if err != nil {
 			return err
 		}
-		uIntVal, err := strconv.ParseUint(fieldValueForcedToString, 10, bitSize)
-		if err != nil {
-			return fmt.Errorf("invalid unsigned integer value '%s' for query parameter '%s'", fieldValueForcedToString, key)
-		}
-		field.SetUint(uIntVal)
-	case reflect.Float32, reflect.Float64:
-		bitSize, err := getByteSize(fieldKind)
-		if err != nil {
-			return err
-		}
-		floatVal, err := strconv.ParseFloat(fieldValueForcedToString, bitSize)
-		if err != nil {
-			return fmt.Errorf("invalid float value '%s' for query parameter '%s'", fieldValueForcedToString, key)
-		}
-		field.SetFloat(floatVal)
-	case reflect.Bool:
-		boolVal, err := strconv.ParseBool(fieldValueForcedToString)
-		if err != nil {
-			return fmt.Errorf("invalid boolean value '%s' for query parameter '%s'", fieldValueForcedToString, key)
-		}
-		field.SetBool(boolVal)
+		field.SetInt(intValue)
 
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		byteSize, err := getByteSize(kind)
+		if err != nil {
+			return err
+		}
+		uintValue, err := strconv.ParseUint(values[0], 10, byteSize)
+		if err != nil {
+			return err
+		}
+		field.SetUint(uintValue)
+	case reflect.Bool:
+		boolValue, err := strconv.ParseBool(values[0])
+		if err != nil {
+			field.SetBool(boolValue)
+		} else {
+			return err
+		}
+	case reflect.Float32, reflect.Float64:
+		byteSize, err := getByteSize(kind)
+		if err != nil {
+			return err
+		}
+		floatValue, err := strconv.ParseFloat(values[0], byteSize)
+		if err != nil {
+			return err
+		}
+		field.SetFloat(floatValue)
 	default:
-		return fmt.Errorf("unsupported type '%s' for query parameter '%s'", field.Kind(), key)
+		return fmt.Errorf("unsupported field type %s", field.Type())
 	}
 	return nil
 }
+
 func getByteSize(kind reflect.Kind) (int, error) {
 	switch kind {
 	case reflect.Int, reflect.Uint:

@@ -3,11 +3,10 @@ package bluerpc
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
-	"slices"
 	"strings"
 
 	"github.com/gorilla/schema"
@@ -122,22 +121,37 @@ func (c *Ctx) Attachment(filename ...string) {
 //	decodes the query parameters to a struct.
 //
 // The first parameter must be a pointer to a struct.
-func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
-	// Check if targetStruct is a pointer
-	if reflect.ValueOf(targetStruct).Kind() != reflect.Ptr {
-		return fmt.Errorf("targetStruct must be a pointer")
+func (c *Ctx) queryParser(targetStruct interface{}, slug string) error {
+	v := reflect.ValueOf(targetStruct)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return fmt.Errorf("targetStruct must be a non-nil pointer")
 	}
-	structVal := reflect.ValueOf(targetStruct).Elem()
-	structType := structVal.Type()
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return fmt.Errorf("targetStruct must point to a struct")
+	}
+
+	// Extract query parameters
 	query := c.httpR.URL.Query()
 
 	// I take the slug key and split it to get all of the possible nested routes that the user might add
 	// for example /:userId/:imageId/name will be split into [":userId". ":imageId", "name"]
-	slugKeys := strings.Split(path, "/")
-	slices.Reverse(slugKeys)
+	slugKeys := strings.Split(slug, "/")
+	lenSlugKeys := len(slugKeys)
+	url := c.httpR.URL.Path
+	urlParts := strings.Split(url, "/")
+	lenUrlParts := len(urlParts)
+
+	//should never happen
+	if lenUrlParts < lenSlugKeys {
+		panic("The url parts are (for some very unexpected reason) shorter than the slug parts")
+	}
+
+	urlPartsOfTheSlug := urlParts[lenUrlParts-lenSlugKeys:]
 
 	//I only care about the slugs if they are dynamic. yet I also care about their position in the url, for example I need to know that /:userId is second to last in /:userId/:imageId/name
-	// so if it is not dynamic I leave it blank and if it is I remove the dot to be able to compare it later
+	// the position in the array determines the position of the slug in the url
+	//so I will leave the non-dynamic slug elements as filler "" in the arrays. If I then find something that matches the slug then it should work
 	for i, slugKey := range slugKeys {
 		if !strings.HasPrefix(slugKey, ":") {
 			slugKeys[i] = ""
@@ -146,48 +160,44 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 		}
 	}
 
-	for i := 0; i < structVal.NumField(); i++ {
-		field := structVal.Field(i)
-		fieldType := structType.Field(i)
-		var queryKey string
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.CanSet() {
+			continue // Skip unexported fields
+		}
 
-		if key := fieldType.Tag.Get("paramName"); key != "" {
-			queryKey = key
-		} else {
+		fieldType := v.Type().Field(i)
+		queryKey := fieldType.Tag.Get("paramName")
+		if queryKey == "" {
 			queryKey = fieldType.Name
 		}
 
-		if !field.CanSet() {
-			continue
+		// Check if the field corresponds to a URL slug
+		var values []string
+		posOfSlugInUrl := findIndex(slugKeys, queryKey)
+
+		if posOfSlugInUrl != -1 {
+			values = append(values, urlPartsOfTheSlug[posOfSlugInUrl])
 		}
 
-		var queryValues []string
-
-		//continuing from the last comment
-		// if the struct query key matches any
-		if posOfSlugInUrl := findIndex(slugKeys, queryKey); posOfSlugInUrl != -1 {
-			url := c.httpR.URL.Path
-			urlParts := strings.Split(url, "/")
-
-			queryValues = append(queryValues, urlParts[len(urlParts)-posOfSlugInUrl-1])
-		} else {
-
-			values, found := query[queryKey]
-			if !found {
+		// If not a slug or no value found, look for a query parameter
+		if len(values) == 0 {
+			queryValues, ok := query[queryKey]
+			if !ok {
 				continue
 			}
-			queryValues = append(queryValues, values...)
-
-		}
-		queryValuesAny := make([]any, len(queryValues))
-		for i, v := range queryValues {
-			queryValuesAny[i] = v
+			for _, value := range queryValues {
+				splitQueryValues := strings.Split(value, ",")
+				values = append(values, splitQueryValues...)
+			}
 		}
 
-		if err := fillInField(field, queryKey, queryValuesAny...); err != nil {
-			return err
+		// If values are found, attempt to set the field
+		if err := setField(field, values); err != nil {
+			return fmt.Errorf("failed to set field '%s': %v", fieldType.Name, err)
 		}
 	}
+
 	return nil
 }
 
@@ -214,49 +224,70 @@ func (c *Ctx) bodyParser(targetStruct interface{}) error {
 	}
 }
 
-func (c *Ctx) decodeJSON(targetStruct interface{}) error {
+func (c *Ctx) decodeJSON(target interface{}) error {
+	// Ensure target is a pointer to a struct
+	if reflect.TypeOf(target).Kind() != reflect.Ptr || reflect.TypeOf(target).Elem().Kind() != reflect.Struct {
+		return errors.New("target must be a pointer to a struct")
+	}
+
+	// Decode the JSON body into a map
 	var dataMap map[string]interface{}
-	body, err := io.ReadAll(c.httpR.Body)
-
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(body, &dataMap); err != nil {
+	if err := json.NewDecoder(c.httpR.Body).Decode(&dataMap); err != nil {
 		return err
 	}
 
-	// Iterate over the fields of the struct
-	val := reflect.ValueOf(targetStruct).Elem()
+	// Get the reflect value and type of the target struct
+	val := reflect.ValueOf(target).Elem()
 	typ := val.Type()
+
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
-		fieldInfo := typ.Field(i)
+		fieldType := typ.Field(i)
 
-		// Determine the key name to look for in the JSON
-		keyName := fieldInfo.Tag.Get("paramName")
-		jsonName := fieldInfo.Tag.Get("JSON")
-		if keyName == "" {
-			if jsonName != "" {
-				keyName = jsonName
-			} else {
-				keyName = fieldInfo.Name // Fallback to field's name
-			}
+		// Use paramName tag as priority, fallback to field name
+		paramName := fieldType.Tag.Get("paramName")
+		if paramName == "" {
+			paramName = strings.ToLower(fieldType.Name)
 		}
-		// Assign the corresponding value from the map
-		if jsonValue, ok := dataMap[keyName]; ok {
-			fieldValue := reflect.ValueOf(jsonValue)
-			if field.Type() == fieldValue.Type() {
-				field.Set(fieldValue)
-				return nil
-			}
-			anyArray := []any{jsonValue}
-			fillInField(field, keyName, anyArray...)
+
+		// Find the corresponding JSON value
+		jsonValue, exists := dataMap[paramName]
+		if !exists {
+			continue
+		}
+
+		// Ensure the field can be set
+		if !field.CanSet() {
+			continue
+		}
+
+		// Convert and set the field value
+		if err := setFieldValue(field, jsonValue); err != nil {
+			return fmt.Errorf("failed to set field '%s': %v", fieldType.Name, err)
 		}
 	}
 
 	return nil
 }
+func setFieldValue(field reflect.Value, value interface{}) error {
+	if value == nil {
+		return nil
+	}
 
+	// Convert value to the field's type and set it
+	valueType := reflect.TypeOf(value)
+	fieldType := field.Type()
+
+	if valueType.AssignableTo(fieldType) {
+		field.Set(reflect.ValueOf(value))
+		return nil
+	} else if valueType.ConvertibleTo(fieldType) {
+		field.Set(reflect.ValueOf(value).Convert(fieldType))
+		return nil
+	}
+
+	return fmt.Errorf("type mismatch: cannot assign %v to %v", valueType, fieldType)
+}
 func (c *Ctx) decodeForm(targetStruct interface{}) error {
 	if err := c.httpR.ParseForm(); err != nil {
 		return err
