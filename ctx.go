@@ -160,7 +160,6 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 		if !field.CanSet() {
 			continue
 		}
-		fmt.Println("i", i)
 
 		var queryValues []string
 
@@ -172,7 +171,7 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 
 			queryValues = append(queryValues, urlParts[len(urlParts)-posOfSlugInUrl-1])
 		} else {
-			fmt.Println("query", query)
+
 			values, found := query[queryKey]
 			if !found {
 				continue
@@ -186,7 +185,6 @@ func (c *Ctx) queryParser(targetStruct interface{}, path string) error {
 		}
 
 		if err := fillInField(field, queryKey, queryValuesAny...); err != nil {
-			fmt.Println("err from fill in field", err)
 			return err
 		}
 	}
@@ -297,6 +295,7 @@ func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
+
 	switch v.Kind() {
 	case reflect.Struct:
 		result := make(map[string]interface{})
@@ -304,7 +303,9 @@ func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
 		for i := 0; i < v.NumField(); i++ {
 			field := t.Field(i)
 			key, fieldValue := c.getFieldKeyAndValue(field, v.Field(i))
-
+			if !fieldValue.IsValid() {
+				continue
+			}
 			switch fieldValue.Kind() {
 			case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:
 				if fieldValue.Kind() == reflect.Map && fieldValue.Type().Key().Kind() != reflect.String {
