@@ -32,8 +32,6 @@ func TestUnauthorizedAuth(t *testing.T) {
 
 	protected := NewQuery[any, any](app, func(ctx *Ctx, query any) (*Res[any], error) {
 		return &Res[any]{
-			Status: 200,
-			Header: Header{},
 			Body: group_test_output{
 				FieldOneOut:   "dwa",
 				FieldTwoOut:   "dwadwa",
@@ -85,7 +83,6 @@ func TestAuthorizedAuth(t *testing.T) {
 
 	protected := NewQuery[any, any](app, func(ctx *Ctx, query any) (*Res[any], error) {
 		return &Res[any]{
-			Status: 200,
 			Header: Header{},
 			Body: group_test_output{
 				FieldOneOut:   "dwa",
@@ -141,7 +138,6 @@ func TestNestedAuthorized(t *testing.T) {
 
 	proc := NewQuery[any, any](app, func(ctx *Ctx, query any) (*Res[any], error) {
 		return &Res[any]{
-			Status: 200,
 			Header: Header{},
 			Body: group_test_output{
 				FieldOneOut:   "dwa",

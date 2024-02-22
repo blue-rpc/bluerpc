@@ -8,11 +8,11 @@ type Handler = func(ctx *Ctx) error
 type AuthHandler func(ctx *Ctx) (any, error)
 
 type Res[T any] struct {
-	Status int
 	Header Header
 	Body   T
 }
 type Header struct {
+	Status          int
 	Authorization   string         // Credentials for authenticating the client to the server
 	CacheControl    string         // Directives for caching mechanisms in both requests and responses
 	ContentEncoding string         // The encoding of the body

@@ -80,7 +80,6 @@ func perfLoop(app *App, num int, wg *sync.WaitGroup) time.Duration {
 	defer wg.Done()
 	query := NewQuery[test_query, performance_test_output](app, func(ctx *Ctx, query test_query) (*Res[performance_test_output], error) {
 		return &Res[performance_test_output]{
-			Status: 200,
 			Body: performance_test_output{
 				FieldOneOut:   "dwa",
 				FieldTwoOut:   "dwadwa",
@@ -90,7 +89,6 @@ func perfLoop(app *App, num int, wg *sync.WaitGroup) time.Duration {
 	})
 	mut := NewMutation[test_query, performance_test_input, performance_test_output](app, func(ctx *Ctx, query test_query, input performance_test_input) (*Res[performance_test_output], error) {
 		return &Res[performance_test_output]{
-			Status: 200,
 			Body: performance_test_output{
 				FieldOneOut:   "dwadwa",
 				FieldTwoOut:   "dwadwadwa",

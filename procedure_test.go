@@ -35,7 +35,6 @@ func TestQuery(t *testing.T) {
 
 	proc := NewQuery[test_query, procedure_test_output](app, func(ctx *Ctx, query test_query) (*Res[procedure_test_output], error) {
 		return &Res[procedure_test_output]{
-			Status: 200,
 			Header: Header{},
 			Body: procedure_test_output{
 				FieldOneOut:   "dwa",
@@ -112,7 +111,6 @@ func TestMutation(t *testing.T) {
 	proc := NewMutation[test_query, procedure_test_input, procedure_test_output](app, func(ctx *Ctx, query test_query, input procedure_test_input) (*Res[procedure_test_output], error) {
 
 		return &Res[procedure_test_output]{
-			Status: 200,
 			Body: procedure_test_output{
 				FieldOneOut:   "dwaawdwa",
 				FieldTwoOut:   "dwa",
@@ -204,7 +202,6 @@ func TestMutation(t *testing.T) {
 	fakeProc := NewMutation[test_query, procedure_test_input, procedure_test_output](app, func(ctx *Ctx, query test_query, input procedure_test_input) (*Res[procedure_test_output], error) {
 
 		return &Res[procedure_test_output]{
-			Status: 200,
 			Body: procedure_test_output{
 				FieldOneOut:   "",
 				FieldTwoOut:   "dwa",

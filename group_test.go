@@ -39,7 +39,6 @@ func TestGroup(t *testing.T) {
 
 	proc := NewQuery[any, group_test_output](app, func(ctx *Ctx, query any) (*Res[group_test_output], error) {
 		return &Res[group_test_output]{
-			Status: 200,
 			Header: Header{},
 			Body: group_test_output{
 				FieldOneOut:   "dwa",
