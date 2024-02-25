@@ -52,14 +52,10 @@ func addRpcFunc(builder *strings.Builder, app *App) {
 		host + "\n" +
 		"  let path = apiRoute;\n" +
 		"  if (params?.query && Object.keys(params.query).length !== 0) {\n" +
-		"    path += `?${Object.keys(params.query)\n" +
-		"      .map(key => {\n" +
-		"        if (key.includes('Slug')|| !params.query[key]) {\n" +
-		"          return '';\n" +
-		"        }\n" +
-		"        return `${encodeURIComponent(key)}=${encodeURIComponent(params.query[key])}`;\n" +
-		"      })\n" +
-		"      .join('&')}`;\n" +
+		"    path += `${Object.keys(params.query)\n" +
+		"      .filter(key => !key.includes('Slug') && params.query[key])\n" +
+		"      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params.query[key])}`)\n" +
+		"      .join('&')}`\n" +
 		"  }\n" +
 		"  const url = host + path\n" +
 		"  const res = await fetch(url, requestOptions);\n" +

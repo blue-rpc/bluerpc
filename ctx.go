@@ -26,7 +26,7 @@ type Ctx struct {
 // If there is no data OR if the data you've set on your context does not match the generic type you provided then it will trigger a panic
 func GetAuth[authType any](ctx *Ctx) authType {
 	if ctx.auth == nil {
-		panic("You did not make this route protected in order to call the Auth() function on. You can only call the Auth() function on protected procedures")
+		panic("There is no context auth to provide. You did not make this route protected in order to call the Auth() function on. You can only call the Auth() function on protected procedures")
 	}
 	castedAuth, ok := ctx.auth.(authType)
 	if ok {
