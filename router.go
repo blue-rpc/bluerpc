@@ -157,7 +157,7 @@ func (r *Router) Static(prefix, root string, config ...*Static) {
 		return
 	}
 	r.addProcedure("/", &ProcedureInfo{
-		method:      QUERY,
+		method:      STATIC,
 		validatorFn: r.validatorFn,
 		handler:     createStaticFunction(prefix, root, actualConfig),
 	})
@@ -194,9 +194,7 @@ func (r *Router) PrintInfo() {
 
 		switch procInfo.method {
 		case QUERY:
-
 			queryType := getType(procInfo.querySchema)
-
 			inputsAndOutputs.WriteString(goToTsObj(queryType))
 		case MUTATION:
 			inputsAndOutputs.WriteString("{")
@@ -208,13 +206,12 @@ func (r *Router) PrintInfo() {
 			inputsAndOutputs.WriteString("input:")
 			inputsAndOutputs.WriteString(goToTsObj(inputType))
 			inputsAndOutputs.WriteString("}")
-
 		}
-
-		inputsAndOutputs.WriteString(")=>")
-
-		outputType := getType(procInfo.outputSchema)
-		inputsAndOutputs.WriteString(goTypeToTSType(outputType))
+		if procInfo.method == QUERY || procInfo.method == MUTATION {
+			inputsAndOutputs.WriteString(")=>")
+			outputType := getType(procInfo.outputSchema)
+			inputsAndOutputs.WriteString(goTypeToTSType(outputType))
+		}
 
 		fmt.Println(pathAndMethod + inputsAndOutputs.String())
 	}

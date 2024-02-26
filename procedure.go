@@ -10,6 +10,7 @@ type Method string
 var (
 	QUERY    Method = "query"
 	MUTATION Method = "mutation"
+	STATIC   Method = "static"
 )
 
 type Procedure[query any, input any, output any] struct {

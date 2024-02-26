@@ -117,6 +117,9 @@ func generateMutationFnBody(stringBuilder *strings.Builder, isParams bool, addre
 }
 
 func getType(t interface{}) reflect.Type {
+	if t == nil {
+		return nil
+	}
 	typeOfT := reflect.TypeOf(t)
 
 	if typeOfT == nil {

@@ -59,6 +59,9 @@ func goToTsObj(someStruct reflect.Type, dynamicSlugNames ...string) string {
 }
 
 func goTypeToTSType(t reflect.Type) string {
+	if t == nil {
+		return "any"
+	}
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
