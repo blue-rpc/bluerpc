@@ -52,7 +52,7 @@ func addRpcFunc(builder *strings.Builder, app *App) {
 		host + "\n" +
 		"  let path = apiRoute;\n" +
 		"  if (params?.query && Object.keys(params.query).length !== 0) {\n" +
-		"    path += `${Object.keys(params.query)\n" +
+		"    path += `?${Object.keys(params.query)\n" +
 		"      .filter(key => !key.includes('Slug') && params.query[key])\n" +
 		"      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params.query[key])}`)\n" +
 		"      .join('&')}`\n" +
