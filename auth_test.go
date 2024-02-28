@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+type User struct {
+	Name string
+}
+
 func TestUnauthorizedAuth(t *testing.T) {
 
 	fmt.Println(DefaultColors.Green + "TESTING AUTHORIZATION" + DefaultColors.Reset)
