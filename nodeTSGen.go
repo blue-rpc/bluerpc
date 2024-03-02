@@ -35,6 +35,9 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 				stringBuilder.WriteString(fmt.Sprintf("[`%s`]:{", path))
 
 			}
+			if proc.method == STATIC {
+				continue
+			}
 			if proc.protected {
 				stringBuilder.WriteString("_")
 			}
@@ -47,6 +50,8 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 				stringBuilder.WriteString("mutation: async ")
 				query, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
 				genTSFuncFromMutation(stringBuilder, query, input, output, fullPath, proc.dynamicSlugs)
+			case QUERY, MUTATION:
+
 			}
 
 			//if this is a nested route it will be of the form of some nested objects. Thus we need to close each object that we created.
