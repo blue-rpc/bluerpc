@@ -50,7 +50,6 @@ func nodeToTS(stringBuilder *strings.Builder, router *Router, isLast bool, curre
 				stringBuilder.WriteString("mutation: async ")
 				query, input, output := proc.querySchema, proc.inputSchema, proc.outputSchema
 				genTSFuncFromMutation(stringBuilder, query, input, output, fullPath, proc.dynamicSlugs)
-			case QUERY, MUTATION:
 
 			}
 

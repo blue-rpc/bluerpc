@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
@@ -69,7 +70,17 @@ func TestStatic(t *testing.T) {
 	fmt.Println(DefaultColors.Green + "PASSED TESTING STATIC METHOD" + DefaultColors.Reset)
 
 }
-
+func TestStaticOutput(t *testing.T) {
+	fmt.Println(DefaultColors.Green + "TESTING STATIC OUTPUT" + DefaultColors.Reset)
+	app := New()
+	app.Static("/assets", "")
+	builder := strings.Builder{}
+	nodeToTS(&builder, app.startRoute, true, "")
+	if builder.String() != "{[`assets`]:{}}" {
+		t.Fail()
+	}
+	fmt.Println(DefaultColors.Green + "PASSED TESTING STATIC OUTPUT" + DefaultColors.Reset)
+}
 func createFile(t *testing.T, dir, filename, content string) {
 	err := os.WriteFile(filepath.Join(dir, filename), []byte(content), 0666)
 	if err != nil {
