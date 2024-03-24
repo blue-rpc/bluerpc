@@ -50,7 +50,7 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	if absPath == "/" {
 		absPath = ""
 	}
-	dynamicSlugs := findDynamicSlugs(slug)
+	// dynamicSlugs := findDynamicSlugs(slug)
 	fullRoute := absPath + slug
 	fullHandler := func(c *Ctx) error {
 
@@ -94,10 +94,10 @@ func (proc *Procedure[query, input, output]) Attach(route Route, slug string) {
 	}
 
 	route.addProcedure(slug, &ProcedureInfo{
-		method:       proc.method,
-		handler:      fullHandler,
-		validatorFn:  route.getValidatorFn(),
-		dynamicSlugs: dynamicSlugs,
+		method:      proc.method,
+		handler:     fullHandler,
+		validatorFn: route.getValidatorFn(),
+		// dynamicSlugs: dynamicSlugs,
 		querySchema:  new(query),
 		inputSchema:  new(input),
 		outputSchema: new(output),

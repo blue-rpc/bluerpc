@@ -184,7 +184,12 @@ func (c *Ctx) queryParser(targetStruct interface{}, slug string) error {
 		if len(values) == 0 {
 			queryValues, ok := query[queryKey]
 			if !ok {
-				continue
+				pathValue := c.httpR.PathValue(queryKey)
+				if len(pathValue) != 0 {
+					values = append(values, pathValue)
+				} else {
+					continue
+				}
 			}
 			for _, value := range queryValues {
 				splitQueryValues := strings.Split(value, ",")
@@ -334,7 +339,7 @@ func (c *Ctx) marshalJSON(data interface{}) ([]byte, error) {
 		for i := 0; i < v.NumField(); i++ {
 			field := t.Field(i)
 			key, fieldValue := c.getFieldKeyAndValue(field, v.Field(i))
-			if !fieldValue.IsValid() {
+			if !fieldValue.IsValid() || !field.IsExported() {
 				continue
 			}
 			switch fieldValue.Kind() {

@@ -18,9 +18,9 @@ func TestStatic(t *testing.T) {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	app := New(&Config{
-		OutputPath:          "./some-file.ts",
 		ValidatorFn:         validate.Struct,
 		DisableInfoPrinting: true,
+		DisableGenerateTS:   true,
 	})
 	dir, err := os.MkdirTemp("", "local_test")
 	if err != nil {

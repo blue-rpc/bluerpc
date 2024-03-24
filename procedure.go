@@ -30,12 +30,6 @@ type Procedure[query any, input any, output any] struct {
 	protected  bool
 }
 
-// position refers to the position of the slug FROM THE END
-// meaning in /api/:dynamic ":dynamic" will be in POSITION 0
-type dynamicSlugInfo struct {
-	Position int
-	Name     string
-}
 type ProcedureInfo struct {
 	method      Method
 	validatorFn *validatorFn
@@ -44,10 +38,9 @@ type ProcedureInfo struct {
 	inputSchema  interface{}
 	outputSchema interface{}
 
-	dynamicSlugs []dynamicSlugInfo
-	handler      func(ctx *Ctx) error
-	protected    bool
-	authorizer   *Authorizer
+	handler    func(ctx *Ctx) error
+	protected  bool
+	authorizer *Authorizer
 }
 
 // Creates a new query procedure that can be attached to groups / app root.

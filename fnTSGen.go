@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{}, address string, dynamicSlugs []dynamicSlugInfo) {
+func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{}, address string) {
 
 	stringBuilder.WriteString("(")
 
 	var dynamicSlugNames []string
-	for _, dynamicSlug := range dynamicSlugs {
-		dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
-	}
+	// for _, dynamicSlug := range dynamicSlugs {
+	// 	dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
+	// }
 
 	if !isInterpretedAsEmpty(query) {
 		qpType := getType(query)
@@ -26,18 +26,18 @@ func genTSFuncFromQuery(stringBuilder *strings.Builder, query, output interface{
 	stringBuilder.WriteString("):Promise<")
 
 	generateFnOutputType(stringBuilder, output, dynamicSlugNames...)
-	address = addDynamicToAddress(address, QUERY, dynamicSlugs)
+	// address = addDynamicToAddress(address, QUERY, dynamicSlugs)
 	generateQueryFnBody(stringBuilder, query != nil, address)
 }
 
-func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output interface{}, address string, dynamicSlugs []dynamicSlugInfo) {
+func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output interface{}, address string) {
 
 	stringBuilder.WriteString("(")
 
 	var dynamicSlugNames []string
-	for _, dynamicSlug := range dynamicSlugs {
-		dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
-	}
+	// for _, dynamicSlug := range dynamicSlugs {
+	// 	dynamicSlugNames = append(dynamicSlugNames, dynamicSlug.Name)
+	// }
 
 	isParams := !isInterpretedAsEmpty(query) || !isInterpretedAsEmpty(input)
 
@@ -68,7 +68,7 @@ func genTSFuncFromMutation(stringBuilder *strings.Builder, query, input, output 
 
 	stringBuilder.WriteString("):Promise<")
 	generateFnOutputType(stringBuilder, output, dynamicSlugNames...)
-	address = addDynamicToAddress(address, MUTATION, dynamicSlugs)
+	// address = addDynamicToAddress(address, MUTATION, dynamicSlugs)
 	generateMutationFnBody(stringBuilder, isParams, address)
 }
 func generateFnOutputType(stringBuilder *strings.Builder, output any, dynamicSlugNames ...string) {
@@ -136,24 +136,24 @@ func getType(t interface{}) reflect.Type {
 }
 
 // adds the needed dynamic typescript string to the address in the generated ts.
-func addDynamicToAddress(s string, method Method, slugInfos []dynamicSlugInfo) string {
-	if len(slugInfos) == 0 {
-		return s
-	}
-	splitStr := strings.Split(s, "/")
+// func addDynamicToAddress(s string, method Method, slugInfos []dynamicSlugInfo) string {
+// 	if len(slugInfos) == 0 {
+// 		return s
+// 	}
+// 	splitStr := strings.Split(s, "/")
 
-	for _, dsi := range slugInfos {
-		var dynTsPart string
-		switch method {
-		case QUERY:
-			dynTsPart = fmt.Sprintf(`query.%sSlug`, dsi.Name)
-		case MUTATION:
-			dynTsPart = fmt.Sprintf(`parameters.query.%sSlug`, dsi.Name)
-		}
-		splitStr[len(splitStr)-1-dsi.Position] = fmt.Sprintf(`${%s}`, dynTsPart)
-	}
-	return strings.Join(splitStr, "/")
-}
+// 	for _, dsi := range slugInfos {
+// 		var dynTsPart string
+// 		switch method {
+// 		case QUERY:
+// 			dynTsPart = fmt.Sprintf(`query.%sSlug`, dsi.Name)
+// 		case MUTATION:
+// 			dynTsPart = fmt.Sprintf(`parameters.query.%sSlug`, dsi.Name)
+// 		}
+// 		splitStr[len(splitStr)-1-dsi.Position] = fmt.Sprintf(`${%s}`, dynTsPart)
+// 	}
+// 	return strings.Join(splitStr, "/")
+// }
 
 func isInterpretedAsEmpty(v interface{}) bool {
 	// First, check if v is nil. This covers the case where v is nil itself.

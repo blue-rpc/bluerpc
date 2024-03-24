@@ -22,30 +22,12 @@ func splitStringOnSlash(s string) ([]string, error) {
 
 	var result []string
 
-	// Check if the string contains "/:" and find its position
-	pos := strings.Index(s, "/:")
-	if pos != -1 {
-		// Split the string until the position of "/:"
-		parts := strings.Split(s[:pos], "/")
+	parts := strings.Split(s, "/")
 
-		// Add non-empty parts to the result
-		for _, part := range parts {
-			if part != "" {
-				result = append(result, "/"+part)
-			}
-		}
-
-		// Add the remaining part of the string starting from "/:" as the last element
-		result = append(result, s[pos:])
-	} else {
-		// Split the string at each slash if "/:" is not found
-		parts := strings.Split(s, "/")
-
-		// Add non-empty parts to the result
-		for _, part := range parts {
-			if part != "" {
-				result = append(result, "/"+part)
-			}
+	// Add non-empty parts to the result
+	for _, part := range parts {
+		if part != "" {
+			result = append(result, "/"+part)
 		}
 	}
 
@@ -159,23 +141,7 @@ func getByteSize(kind reflect.Kind) (int, error) {
 
 	return 0, fmt.Errorf("passed kind is not a number, it is a %s", kind.String())
 }
-func findDynamicSlugs(s string) (info []dynamicSlugInfo) {
 
-	routes := strings.Split(s, "/")
-
-	//we start at 1 to avoid the first empty element. If the string starts with a slash the first element will be empty
-	for i := 1; i < len(routes); i++ {
-		route := routes[i]
-		if route[0] == ':' {
-			info = append(info, dynamicSlugInfo{
-				Position: len(routes) - 1 - i,
-				Name:     route[1:],
-			})
-		}
-
-	}
-	return info
-}
 func sliceStrContains(s []string, str string) bool {
 	for _, v := range s {
 		if v == str {

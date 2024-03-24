@@ -96,7 +96,6 @@ func perfLoop(app *App, num int, wg *sync.WaitGroup) time.Duration {
 			},
 		}, nil
 	})
-	fmt.Println("num of rounds", num)
 	currGroup := app.Router("/start")
 	for i := 0; i < num; i++ {
 

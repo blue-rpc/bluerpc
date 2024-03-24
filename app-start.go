@@ -91,9 +91,13 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		nextMws := append(prevMws, route.mws...)
 		nestedMux, newTotalRoutes := buildMux(localRoute, nextMws, totalRoutes)
 		totalRoutes = newTotalRoutes
+		fmt.Println("localSlug", localSlug)
 		mux.Handle(slug+"/", http.StripPrefix(localSlug, nestedMux))
 	}
-	setupProcedures(router.getAbsPath(), mux, router.procedures, router.mws)
+
+	for path, proc := range router.procedures {
+		attachProcedureToMux(mux, path, proc, router.mws)
+	}
 
 	return mux, totalRoutes
 }
