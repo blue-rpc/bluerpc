@@ -17,10 +17,27 @@ func findIndex(slice []string, val string) int {
 	return -1
 }
 
-// splitStringOnSlash splits the string at each slash (unless it finds :/, meaning a dynamic route) and returns an array of substrings.
+// splitStringOnSlash splits the string at each slash (unless it finds /{...}, meaning a dynamic route) and returns an array of substrings.
 func splitStringOnSlash(s string) ([]string, error) {
 
 	var result []string
+	//check if the string contains /{}
+	pos := strings.Index(s, "/{")
+	if pos != -1 {
+		// Split the string until the position of "/{"
+		parts := strings.Split(s[:pos], "/")
+
+		// Add non-empty parts to the result
+		for _, part := range parts {
+			if part != "" {
+				result = append(result, "/"+part)
+			}
+		}
+
+		// Add the remaining part of the string starting from "/{" as the last element
+		result = append(result, s[pos:])
+		return result, nil
+	}
 
 	parts := strings.Split(s, "/")
 

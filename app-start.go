@@ -22,7 +22,7 @@ func (a *App) Listen(port string) error {
 		if !a.config.DisableGenerateTS {
 			generateTs(a)
 		}
-		a.serveMux = &http.ServeMux{}
+		a.serveMux = http.NewServeMux()
 		a.serveMux.Handle("/", nestedMux)
 
 		if a.config.EnablePProf {
@@ -71,7 +71,7 @@ func (a *App) Listen(port string) error {
 }
 func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMux, int) {
 
-	mux := &http.ServeMux{}
+	mux := http.NewServeMux()
 	router.mux = mux
 
 	// mux.HandleFunc("/hello-world", func(w http.ResponseWriter, r *http.Request) {
@@ -89,10 +89,11 @@ func buildMux(router *Router, prevMws []Handler, totalRoutes int) (*http.ServeMu
 		localRoute := route
 		localSlug := slug
 		nextMws := append(prevMws, route.mws...)
+
 		nestedMux, newTotalRoutes := buildMux(localRoute, nextMws, totalRoutes)
 		totalRoutes = newTotalRoutes
-		fmt.Println("localSlug", localSlug)
-		mux.Handle(slug+"/", http.StripPrefix(localSlug, nestedMux))
+
+		mux.Handle(slug+"/", dynamicStripPrefixHandler(localSlug, nestedMux))
 	}
 
 	for path, proc := range router.procedures {
@@ -211,4 +212,23 @@ func centerText(text string, width int) string {
 
 func leftAlignText(text string, width int) string {
 	return text + strings.Repeat(" ", width-len(text))
+}
+
+// wrapper round http serve mux so that it can adequately accept wildcard {}
+func dynamicStripPrefixHandler(prefix string, subMux *http.ServeMux) http.Handler {
+	if !strings.HasPrefix(prefix, "/{") {
+		return http.StripPrefix(prefix, subMux)
+	}
+	trimStart := strings.TrimPrefix(prefix, "/{")
+	if !strings.HasSuffix(prefix, "}") {
+		log.Fatalf("prefix %s is invalid", prefix)
+	}
+	wildcard := strings.TrimSuffix(trimStart, "}")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		wildcardWithPath := fmt.Sprintf("/%s", r.PathValue(wildcard))
+		adaptedMux := http.StripPrefix(wildcardWithPath, subMux)
+		adaptedMux.ServeHTTP(w, r)
+	})
+
 }
